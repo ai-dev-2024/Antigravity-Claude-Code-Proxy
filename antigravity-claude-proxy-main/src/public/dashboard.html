@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Antigravity Proxy Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #0f1117;
+            --card-bg: #1e212b;
+            --text-primary: #e6e6e6;
+            --text-secondary: #9ca3af;
+            --accent: #3b82f6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #2d3748;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .refresh-btn {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background-color: var(--border);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .account-email {
+            font-weight: 600;
+            color: var(--accent);
+            text-overflow: ellipsis;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .status-ok {
+            background-color: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .status-limited {
+            background-color: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+
+        .status-error {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        .quota-list {
+            margin-top: 1rem;
+            font-size: 0.875rem;
+        }
+
+        .quota-item {
+            margin-bottom: 0.75rem;
+        }
+
+        .quota-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.25rem;
+            color: var(--text-secondary);
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 6px;
+            background-color: #374151;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        .bg-green {
+            background-color: var(--success);
+        }
+
+        .bg-yellow {
+            background-color: var(--warning);
+        }
+
+        .bg-red {
+            background-color: var(--danger);
+        }
+
+        .last-used {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 1rem;
+            text-align: right;
+        }
+
+        .error-msg {
+            color: var(--danger);
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+            background: rgba(239, 68, 68, 0.1);
+            padding: 0.5rem;
+            border-radius: 4px;
+        }
+
+        /* Loading spinner */
+        .spinner {
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border-left-color: var(--accent);
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        footer {
+            margin-top: 3rem;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Antigravity Proxy Dashboard</h1>
+            <div>
+                <span id="last-updated"
+                    style="margin-right: 1rem; color: var(--text-secondary); font-size: 0.875rem;"></span>
+                <button class="refresh-btn" onclick="fetchData()">Refresh</button>
+            </div>
+        </header>
+
+        <div id="accounts-grid" class="stats-grid">
+            <!-- Accounts will be injected here -->
+            <div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: var(--text-secondary);">
+                <div class="spinner"></div> Loading account data...
+            </div>
+        </div>
+
+        <footer>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 1rem;">
+                <p style="margin: 0;">Antigravity Claude Proxy</p>
+                <a href="https://ko-fi.com/ai_dev_2024" target="_blank"
+                    style="display: inline-flex; align-items: center; text-decoration: none; background: #29abe0; color: white; padding: 4px 12px; border-radius: 999px; font-weight: 600; font-size: 0.8rem;">
+                    <span style="margin-right: 4px;">☕</span> Support
+                </a>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Use key priority models to show in condensed view
+        const PRIORITY_MODELS = [
+            'gemini-3-pro-high',
+            'gemini-3-flash',
+            'claude-opus-4-5-thinking',
+            'claude-sonnet-4-5'
+        ];
+
+        function getProgressBarColor(percent) {
+            if (percent > 50) return 'bg-green';
+            if (percent > 20) return 'bg-yellow';
+            return 'bg-red';
+        }
+
+        async function fetchData() {
+            const grid = document.getElementById('accounts-grid');
+            const updatedSpan = document.getElementById('last-updated');
+
+            updatedSpan.textContent = 'Updating...';
+
+            try {
+                const response = await fetch('http://localhost:8080/account-limits');
+                const data = await response.json();
+
+                grid.innerHTML = ''; // Clear loading state
+
+                // Sort: Most recently used (active) first
+                data.accounts.sort((a, b) => (b.lastUsed || 0) - (a.lastUsed || 0));
+
+                data.accounts.forEach(acc => {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+
+                    let statusClass = 'status-ok';
+                    let statusText = 'ACTIVE';
+
+                    if (acc.status === 'rate-limited') {
+                        statusClass = 'status-limited';
+                        statusText = 'RATE LIMITED';
+                    } else if (acc.status !== 'ok') {
+                        statusClass = 'status-error';
+                        statusText = 'ERROR';
+                    }
+
+                    // Build quotas HTML
+                    let quotasHtml = '';
+                    const modelsToShow = PRIORITY_MODELS.filter(m => acc.limits && acc.limits[m]);
+
+                    if (modelsToShow.length > 0) {
+                        quotasHtml = '<div class="quota-list">';
+                        modelsToShow.forEach(model => {
+                            const quota = acc.limits[model];
+                            const percent = Math.round((quota.remainingFraction || 0) * 100);
+                            const color = getProgressBarColor(percent);
+
+                            quotasHtml += `
+                                <div class="quota-item">
+                                    <div class="quota-label">
+                                        <span>${model}</span>
+                                        <span>${percent}%</span>
+                                    </div>
+                                    <div class="progress-bar-bg">
+                                        <div class="progress-bar-fill ${color}" style="width: ${percent}%"></div>
+                                    </div>
+                                    ${quota.resetTime ? `<div style="font-size: 0.7rem; color: #6b7280; margin-top: 2px;">Reset: ${new Date(quota.resetTime).toLocaleTimeString()}</div>` : ''}
+                                </div>
+                            `;
+                        });
+                        quotasHtml += '</div>';
+                    } else {
+                        quotasHtml = '<div style="color: var(--text-secondary); font-size: 0.875rem; margin-top: 1rem;">No usage data available yet.</div>';
+                    }
+
+                    // Error message if any
+                    const errorHtml = acc.error ? `<div class="error-msg">${acc.error}</div>` : '';
+
+                    card.innerHTML = `
+                        <div class="card-header">
+                            <div class="account-email" title="${acc.email}">${acc.email}</div>
+                            <span class="status-badge ${statusClass}">${statusText}</span>
+                        </div>
+                        ${quotasHtml}
+                        ${errorHtml}
+                    `;
+                    grid.appendChild(card);
+                });
+
+                updatedSpan.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                updatedSpan.textContent = 'Failed to update';
+                grid.innerHTML = `<div style="color: var(--danger); text-align: center;">Error loading dashboard: ${error.message}</div>`;
+            }
+        }
+
+        // Initial fetch
+        fetchData();
+
+        // Auto-refresh every 30 seconds
+        setInterval(fetchData, 30000);
+    </script>
+</body>
+
+</html>

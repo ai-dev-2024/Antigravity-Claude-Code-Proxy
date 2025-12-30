@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+log.txt
+
+# IDE
+.vscode/
+.idea/
+
+# Local config (may contain tokens)
+.claude/
+
+# Test artifacts
+tests/utils/*.png
+tests/utils/*.jpg
+tests/utils/*.jpeg
+
+# Environment
+.env
+.env.local
+
+# Build output
+dist/
+build/
