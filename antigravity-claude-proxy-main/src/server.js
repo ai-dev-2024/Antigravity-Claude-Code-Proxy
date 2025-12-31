@@ -19,6 +19,29 @@ import { forceRefresh } from './token-extractor.js';
 import { REQUEST_BODY_LIMIT, resolveModelAlias } from './constants.js';
 import { AccountManager } from './account-manager.js';
 import { formatDuration } from './utils/helpers.js';
+import fs from 'fs';
+
+// ================= FILE LOGGING SYSTEM =================
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const LOG_DIR = join(__dirname, '..', 'logs');
+const LOG_FILE = join(LOG_DIR, 'proxy.log');
+
+// Ensure logs directory exists
+if (!fs.existsSync(LOG_DIR)) {
+    fs.mkdirSync(LOG_DIR, { recursive: true });
+}
+
+function logToFile(message) {
+    const timestamp = new Date().toISOString();
+    const logLine = `[${timestamp}] ${message}\n`;
+    fs.appendFileSync(LOG_FILE, logLine);
+    console.log(message); // Also log to console
+}
+
+function logRequest(type, model, source = 'unknown', durationMs = null) {
+    const duration = durationMs ? ` (${durationMs}ms)` : '';
+    logToFile(`[${type}] Model: ${model} | Source: ${source}${duration}`);
+}
 
 const app = express();
 const accountManager = new AccountManager();
@@ -52,6 +75,27 @@ function getModelUsageStats() {
     };
 }
 
+// ================= GLOBAL MODEL OVERRIDE =================
+// Allows switching model for ALL requests via dashboard
+// This enables model switching for VS Code extension
+let globalModelOverride = null; // null = use request's model, string = override all requests
+
+function getActiveModel() {
+    return globalModelOverride || 'gemini-3-flash';
+}
+
+function setActiveModel(model) {
+    const resolved = resolveModelAlias(model);
+    globalModelOverride = resolved;
+    console.log(`[ModelSwitch] Global model set to: ${resolved}`);
+    return resolved;
+}
+
+function clearModelOverride() {
+    globalModelOverride = null;
+    console.log('[ModelSwitch] Global model override cleared - using request models');
+}
+
 async function ensureInitialized() {
     if (isInitialized) return;
     if (initPromise) return initPromise;
@@ -79,7 +123,7 @@ app.use(cors());
 app.use(express.json({ limit: REQUEST_BODY_LIMIT }));
 
 // Serve static files (dashboard)
-const __dirname = dirname(fileURLToPath(import.meta.url));
+// __dirname already defined in logging section above
 app.use(express.static(join(__dirname, 'public')));
 
 // Dashboard redirect
@@ -99,7 +143,42 @@ app.post('/restart', (req, res) => {
     }, 2000);
 });
 
-// Perplexity Session Account Management
+// ================= MODEL SWITCHING ENDPOINTS =================
+// These enable model switching from the dashboard for VS Code extension
+
+// Get current active model
+app.get('/active-model', (req, res) => {
+    res.json({
+        model: getActiveModel(),
+        isOverride: globalModelOverride !== null,
+        message: globalModelOverride
+            ? `All requests using: ${globalModelOverride}`
+            : 'Using model from each request'
+    });
+});
+
+// Set active model (global override)
+app.post('/active-model', (req, res) => {
+    const { model } = req.body;
+    if (!model) {
+        return res.status(400).json({ error: 'model is required' });
+    }
+    const resolved = setActiveModel(model);
+    res.json({
+        success: true,
+        model: resolved,
+        message: `All requests will now use: ${resolved}`
+    });
+});
+
+// Clear model override (use request's model)
+app.delete('/active-model', (req, res) => {
+    clearModelOverride();
+    res.json({
+        success: true,
+        message: 'Model override cleared - using model from each request'
+    });
+});
 app.get('/perplexity-sessions', async (req, res) => {
     try {
         await ensureInitialized();
@@ -151,6 +230,21 @@ app.patch('/perplexity-sessions/:email', async (req, res) => {
         const renamed = await perplexitySessionManager.renameAccount(req.params.email, newName);
         if (renamed) {
             res.json({ success: true, message: `Account renamed to ${newName}` });
+        } else {
+            res.status(404).json({ error: 'Account not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Remove a Google account
+app.delete('/google-accounts/:email', async (req, res) => {
+    try {
+        await ensureInitialized();
+        const removed = await accountManager.removeAccount(req.params.email);
+        if (removed) {
+            res.json({ success: true, message: `Account ${req.params.email} removed` });
         } else {
             res.status(404).json({ error: 'Account not found' });
         }
@@ -635,15 +729,65 @@ app.post('/v1/messages', async (req, res) => {
             });
         }
 
+        // ================= NATURAL LANGUAGE MODEL SWITCHING =================
+        // Detect phrases like "switch to grok", "use pro model", "change model to flash"
+        const lastUserMsg = messages.filter(m => m.role === 'user').pop();
+        if (lastUserMsg) {
+            const msgText = typeof lastUserMsg.content === 'string'
+                ? lastUserMsg.content.toLowerCase()
+                : (Array.isArray(lastUserMsg.content)
+                    ? lastUserMsg.content.filter(c => c.type === 'text').map(c => c.text).join(' ').toLowerCase()
+                    : '');
+
+            // Pattern matching for model switch commands
+            const switchPatterns = [
+                /(?:switch|change|use|set)\s+(?:to|the)?\s*(?:model\s+)?(?:to\s+)?(\w+[-\w]*)/i,
+                /(?:model|switch)\s+(?:to\s+)?(\w+[-\w]*)/i
+            ];
+
+            for (const pattern of switchPatterns) {
+                const match = msgText.match(pattern);
+                if (match && match[1]) {
+                    const requestedModel = match[1].toLowerCase();
+                    const resolved = resolveModelAlias(requestedModel);
+                    if (resolved && resolved !== requestedModel) {
+                        setActiveModel(resolved);
+                        console.log(`[NL-Switch] Natural language model switch: "${requestedModel}" → ${resolved}`);
+                    } else if (['flash', 'pro', 'grok', 'opus', 'sonnet', 'kimi', 'gpt', 'perplexity'].includes(requestedModel)) {
+                        const resolved2 = resolveModelAlias(requestedModel);
+                        if (resolved2) {
+                            setActiveModel(resolved2);
+                            console.log(`[NL-Switch] Natural language model switch: "${requestedModel}" → ${resolved2}`);
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
         // Build the request object (resolve model alias if used)
-        const resolvedModel = resolveModelAlias(model) || 'gemini-3-flash';
+        // If global model override is set (via dashboard), use that instead
+        let resolvedModel = resolveModelAlias(model) || 'gemini-3-flash';
+
+        if (globalModelOverride) {
+            console.log(`[API] Global model override active: ${globalModelOverride} (request wanted: ${resolvedModel})`);
+            resolvedModel = globalModelOverride;
+        }
+
+        // ================= MODEL INFO INJECTION =================
+        // Add active model info to system prompt so AI knows what it's using
+        let enhancedSystem = system || '';
+        if (globalModelOverride) {
+            const modelInfo = `\n[SYSTEM INFO: You are currently running on ${resolvedModel} via Antigravity Claude Proxy. This model was selected via dashboard override.]`;
+            enhancedSystem = enhancedSystem + modelInfo;
+        }
 
         const request = {
             model: resolvedModel,
             messages,
             max_tokens: max_tokens || 4096,
             stream,
-            system,
+            system: enhancedSystem || system,  // Use enhanced system with model info
             tools,
             tool_choice,
             thinking,
@@ -654,6 +798,9 @@ app.post('/v1/messages', async (req, res) => {
 
         const requestStartTime = Date.now();
         console.log(`[API] Request for model: ${request.model}, stream: ${!!stream}, messages: ${messages.length}`);
+
+        // Log to file for verification
+        logRequest('REQUEST', request.model, globalModelOverride ? 'dashboard-override' : 'extension', null);
 
         // Debug: Log message structure to diagnose tool_use/tool_result ordering
         if (process.env.DEBUG) {

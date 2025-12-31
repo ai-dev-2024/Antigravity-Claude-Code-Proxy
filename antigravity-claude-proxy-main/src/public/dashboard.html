@@ -791,6 +791,25 @@
     <main class="main">
         <header class="header">
             <span class="header-title" id="page-title">Overview</span>
+
+            <!-- Model Switcher - Quick switch for VS Code extension -->
+            <div class="model-switcher"
+                style="display: flex; align-items: center; gap: 0.5rem; background: var(--secondary); padding: 0.4rem 0.75rem; border-radius: var(--radius); border: 1px solid var(--border);">
+                <span style="font-size: 0.7rem; color: var(--muted-foreground);">🧠 Active Model:</span>
+                <select id="model-select" onchange="switchModel(this.value)"
+                    style="background: var(--input); color: var(--foreground); border: 1px solid var(--border); border-radius: 4px; padding: 0.25rem 0.5rem; font-size: 0.75rem; cursor: pointer;">
+                    <option value="gemini-3-flash">⚡ gemini-3-flash (fast)</option>
+                    <option value="gemini-3-pro-high">🚀 gemini-3-pro-high (powerful)</option>
+                    <option value="gemini-2.5-flash">💨 gemini-2.5-flash</option>
+                    <option value="claude-opus-4-5-thinking">🧠 claude-opus-4-5-thinking</option>
+                    <option value="claude-sonnet-4-5-thinking">📝 claude-sonnet-4-5-thinking</option>
+                    <option value="pplx-grok">🔍 pplx-grok (search)</option>
+                    <option value="pplx-claude-opus">🔮 pplx-claude-opus (search)</option>
+                    <option value="perplexity-auto">🌐 perplexity-auto (search)</option>
+                </select>
+                <span id="model-status" style="font-size: 0.65rem; color: var(--success);">✓</span>
+            </div>
+
             <div class="header-actions">
                 <span id="last-updated" style="font-size: 0.7rem; color: var(--muted-foreground);"></span>
                 <button class="btn btn-secondary btn-sm" onclick="fetchAllData()">↻ Refresh</button>
@@ -1030,9 +1049,8 @@
                     url = `/perplexity-sessions/${encodeURIComponent(email)}`;
                     method = 'DELETE';
                 } else {
-                    // For Google accounts, we'd need to implement this endpoint
-                    showToast('Google account removal not yet implemented', true);
-                    return;
+                    url = `/google-accounts/${encodeURIComponent(email)}`;
+                    method = 'DELETE';
                 }
 
                 const res = await fetch(url, { method });
@@ -1073,6 +1091,58 @@
                 showToast(`Error renaming: ${e.message}`, true);
             }
         }
+
+        // ================= MODEL SWITCHING =================
+        // Quick model switcher for VS Code extension users
+
+        async function switchModel(model) {
+            const statusEl = document.getElementById('model-status');
+            statusEl.textContent = '...';
+            statusEl.style.color = 'var(--warning)';
+
+            try {
+                const res = await fetch('/active-model', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    statusEl.textContent = '✓';
+                    statusEl.style.color = 'var(--success)';
+                    showToast(`Model switched to: ${data.model}`);
+                } else {
+                    statusEl.textContent = '✗';
+                    statusEl.style.color = 'var(--danger)';
+                    showToast(`Failed: ${data.error}`, true);
+                }
+            } catch (e) {
+                statusEl.textContent = '✗';
+                statusEl.style.color = 'var(--danger)';
+                showToast(`Error: ${e.message}`, true);
+            }
+        }
+
+        async function loadActiveModel() {
+            try {
+                const res = await fetch('/active-model');
+                const data = await res.json();
+                const select = document.getElementById('model-select');
+                if (select && data.model) {
+                    // Try to select the current model, or leave as first option
+                    const options = Array.from(select.options);
+                    const match = options.find(o => o.value === data.model);
+                    if (match) {
+                        select.value = data.model;
+                    }
+                }
+            } catch (e) {
+                console.log('Could not load active model:', e);
+            }
+        }
+
+        // Load active model on page load
+        loadActiveModel();
 
         document.querySelectorAll('.modal-overlay').forEach(o => {
             o.addEventListener('click', e => { if (e.target === o) closeModal(o.id); });

@@ -199,6 +199,41 @@ $env:ANTHROPIC_API_KEY = "antigravity-proxy"
 
 ---
 
+## 🖥️ VS Code Extension Integration
+
+Use the proxy with Claude Code extension in Antigravity/VS Code:
+
+### Configure settings.json
+
+```json
+{
+  "anthropic.baseUrl": "http://localhost:8080",
+  "anthropic.apiKey": "antigravity-proxy",
+  "claudeCode.apiBaseUrl": "http://localhost:8080",
+  "claudeCode.selectedModel": "gemini-3-flash",
+  "claudeCode.environmentVariables": [
+    { "name": "ANTHROPIC_BASE_URL", "value": "http://localhost:8080" },
+    { "name": "ANTHROPIC_API_KEY", "value": "antigravity-proxy" },
+    { "name": "ANTHROPIC_MODEL", "value": "gemini-3-flash" }
+  ]
+}
+```
+
+### Model Switching Methods
+
+| Method | How | Scope |
+|--------|-----|-------|
+| **Dashboard** | http://localhost:8080/dashboard dropdown | Global |
+| **Natural Language** | Say "switch to grok" in chat | Global |
+| **settings.json** | Edit `claudeCode.selectedModel` | Default |
+| **CLI /model** | `/model pro` in terminal | Per-session |
+
+### Quick Switch via Dashboard
+
+Open http://localhost:8080/dashboard and use the model dropdown in the header.
+
+---
+
 ## 🔌 API Endpoints
 
 | Endpoint | Method | Description |
@@ -208,7 +243,11 @@ $env:ANTHROPIC_API_KEY = "antigravity-proxy"
 | `/v1/models` | GET | List all available models |
 | `/dashboard` | GET | Web dashboard |
 | `/account-limits` | GET | Detailed account quotas |
+| `/active-model` | GET | Get current active model |
+| `/active-model` | POST | Set global model override |
+| `/active-model` | DELETE | Clear model override |
 | `/perplexity-sessions` | GET/POST | Manage Perplexity accounts |
+| `/google-accounts/:email` | DELETE | Remove Google account |
 
 ---
 
