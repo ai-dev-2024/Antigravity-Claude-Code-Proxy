@@ -6,7 +6,8 @@
  * so this approach doesn't require any manual intervention.
  */
 
-import { execSync } from 'child_process';
+import Database from 'better-sqlite3';
+import { existsSync } from 'fs';
 import {
     TOKEN_REFRESH_INTERVAL_MS,
     ANTIGRAVITY_AUTH_PORT,
@@ -18,28 +19,64 @@ let cachedToken = null;
 let tokenExtractedAt = null;
 
 /**
- * Extract token from Antigravity's SQLite database
- * This is the preferred method as the DB is auto-updated
+ * Validate that a database path is safe to use
+ * @param {string} dbPath - Path to validate
+ * @returns {boolean} True if path is valid
  */
-function extractTokenFromDB() {
-    try {
-        const result = execSync(
-            `sqlite3 "${ANTIGRAVITY_DB_PATH}" "SELECT value FROM ItemTable WHERE key = 'antigravityAuthStatus';"`,
-            { encoding: 'utf-8', timeout: 5000 }
-        );
+function isValidDbPath(dbPath) {
+    if (!dbPath || typeof dbPath !== 'string') {
+        return false;
+    }
+    // Check path doesn't contain shell metacharacters
+    const dangerousChars = /[;&|`$(){}[\]<>!#*?]/;
+    if (dangerousChars.test(dbPath)) {
+        console.error('[Token] Database path contains invalid characters');
+        return false;
+    }
+    return true;
+}
 
-        if (!result || !result.trim()) {
-            throw new Error('No auth status found in database');
+/**
+ * Extract token from Antigravity's SQLite database using native library
+ * This is the preferred method as the DB is auto-updated
+ * @param {string} dbPath - Path to SQLite database (defaults to ANTIGRAVITY_DB_PATH)
+ * @returns {Object} Auth data containing apiKey, name, email, etc.
+ * @throws {Error} If database read fails or no auth status found
+ */
+function extractTokenFromDB(dbPath = ANTIGRAVITY_DB_PATH) {
+    try {
+        // Validate path
+        if (!isValidDbPath(dbPath)) {
+            throw new Error('Invalid database path');
         }
 
-        const authData = JSON.parse(result.trim());
-        return {
-            apiKey: authData.apiKey,
-            name: authData.name,
-            email: authData.email,
-            // Include other fields we might need
-            ...authData
-        };
+        // Check if database file exists
+        if (!existsSync(dbPath)) {
+            throw new Error(`Database file not found: ${dbPath}`);
+        }
+
+        // Open database in read-only mode for safety
+        const db = new Database(dbPath, { readonly: true });
+
+        try {
+            const stmt = db.prepare("SELECT value FROM ItemTable WHERE key = 'antigravityAuthStatus'");
+            const row = stmt.get();
+
+            if (!row || !row.value) {
+                throw new Error('No auth status found in database');
+            }
+
+            const authData = JSON.parse(row.value);
+            return {
+                apiKey: authData.apiKey,
+                name: authData.name,
+                email: authData.email,
+                // Include other fields we might need
+                ...authData
+            };
+        } finally {
+            db.close();
+        }
     } catch (error) {
         console.error('[Token] Database extraction failed:', error.message);
         throw error;
@@ -142,5 +179,7 @@ export async function forceRefresh() {
 
 export default {
     getToken,
-    forceRefresh
+    forceRefresh,
+    extractTokenFromDB,
+    isValidDbPath
 };

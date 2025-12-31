@@ -125,6 +125,12 @@ export const ACCOUNT_CONFIG_PATH = getEnv('ACCOUNT_CONFIG_PATH', join(
     '.config/antigravity-proxy/accounts.json'
 ));
 
+// Perplexity account configuration
+export const PERPLEXITY_CONFIG_PATH = getEnv('PERPLEXITY_CONFIG_PATH', join(
+    homedir(),
+    '.config/antigravity-proxy/perplexity_accounts.json'
+));
+
 // Antigravity app database path (for legacy single-account token extraction)
 // Uses platform-specific path detection
 export const ANTIGRAVITY_DB_PATH = getAntigravityDbPath();

@@ -7,7 +7,6 @@
 import { readFile, writeFile, mkdir, access } from 'fs/promises';
 import { constants as fsConstants } from 'fs';
 import { dirname } from 'path';
-import { execSync } from 'child_process';
 import {
     ACCOUNT_CONFIG_PATH,
     ANTIGRAVITY_DB_PATH,
@@ -20,6 +19,7 @@ import {
 } from './constants.js';
 import { refreshAccessToken } from './oauth.js';
 import { formatDuration } from './utils/helpers.js';
+import tokenExtractor from './token-extractor.js';
 
 export class AccountManager {
     #accounts = [];
@@ -117,18 +117,12 @@ export class AccountManager {
 
     /**
      * Extract token from Antigravity's SQLite database
+     * Uses the shared token extractor module for safe database access
+     * @param {string} dbPath - Path to the SQLite database
+     * @returns {Object} Auth data containing apiKey, name, email, etc.
      */
     #extractTokenFromDB(dbPath = ANTIGRAVITY_DB_PATH) {
-        const result = execSync(
-            `sqlite3 "${dbPath}" "SELECT value FROM ItemTable WHERE key = 'antigravityAuthStatus';"`,
-            { encoding: 'utf-8', timeout: 5000 }
-        );
-
-        if (!result || !result.trim()) {
-            throw new Error('No auth status found in database');
-        }
-
-        return JSON.parse(result.trim());
+        return tokenExtractor.extractTokenFromDB(dbPath);
     }
 
     /**
@@ -182,7 +176,9 @@ export class AccountManager {
         }
 
         if (cleared > 0) {
-            this.saveToDisk();
+            this.saveToDisk().catch(err =>
+                console.error('[AccountManager] Background save failed:', err.message)
+            );
         }
 
         return cleared;
@@ -237,7 +233,9 @@ export class AccountManager {
                 console.log(`[AccountManager] Using account: ${account.email} (${position}/${total})`);
 
                 // Persist the change (don't await to avoid blocking)
-                this.saveToDisk();
+                this.saveToDisk().catch(err =>
+                    console.error('[AccountManager] Background save failed:', err.message)
+                );
 
                 return account;
             }
@@ -270,7 +268,9 @@ export class AccountManager {
         if (account && !account.isRateLimited && !account.isInvalid) {
             account.lastUsed = Date.now();
             // Persist the change (don't await to avoid blocking)
-            this.saveToDisk();
+            this.saveToDisk().catch(err =>
+                console.error('[AccountManager] Background save failed:', err.message)
+            );
             return account;
         }
 
@@ -357,7 +357,9 @@ export class AccountManager {
             `[AccountManager] Rate limited: ${email}. Available in ${formatDuration(cooldownMs)}`
         );
 
-        this.saveToDisk();
+        this.saveToDisk().catch(err =>
+            console.error('[AccountManager] Background save failed:', err.message)
+        );
     }
 
     /**
@@ -383,7 +385,9 @@ export class AccountManager {
             `[AccountManager]   Run 'npm run accounts' to re-authenticate this account`
         );
 
-        this.saveToDisk();
+        this.saveToDisk().catch(err =>
+            console.error('[AccountManager] Background save failed:', err.message)
+        );
     }
 
     /**

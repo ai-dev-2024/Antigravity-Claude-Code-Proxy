@@ -1,274 +1,161 @@
 # Antigravity Claude Proxy
 
-[![npm version](https://img.shields.io/npm/v/antigravity-claude-proxy.svg)](https://www.npmjs.com/package/antigravity-claude-proxy)
-[![npm downloads](https://img.shields.io/npm/dm/antigravity-claude-proxy.svg)](https://www.npmjs.com/package/antigravity-claude-proxy)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-<a href="https://buymeacoffee.com/badrinarayanans" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="50"></a>
+A proxy server that exposes an **Anthropic-compatible API** backed by **Antigravity's Cloud Code** and **Perplexity Pro**, letting you use Claude, Gemini, GPT, Grok, and more with **Claude Code CLI**.
 
-A proxy server that exposes an **Anthropic-compatible API** backed by **Antigravity's Cloud Code**, letting you use Claude and Gemini models with **Claude Code CLI**.
+## Features
 
-![Antigravity Claude Proxy Banner](images/banner.png)
+- 🔄 **Multi-Provider Support**: Google AI (Antigravity) + Perplexity Pro models
+- ⚖️ **Load Balancing**: Automatic rotation across multiple accounts
+- 📊 **Dashboard**: Real-time usage monitoring at `http://localhost:8080/dashboard`
+- 🚀 **Auto-Start**: Runs on Windows startup for instant availability
+- 🌊 **Streaming**: Real-time response streaming for all models
 
 ## How It Works
 
 ```
 ┌──────────────────┐     ┌─────────────────────┐     ┌────────────────────────────┐
-│   Claude Code    │────▶│  This Proxy Server  │────▶│  Antigravity Cloud Code    │
-│   (Anthropic     │     │  (Anthropic → Google│     │  (daily-cloudcode-pa.      │
-│    API format)   │     │   Generative AI)    │     │   sandbox.googleapis.com)  │
+│   Claude Code    │────▶│  Antigravity Proxy  │────▶│  Google AI / Perplexity    │
+│   (any terminal) │     │  (localhost:8080)   │     │  (multiple providers)      │
 └──────────────────┘     └─────────────────────┘     └────────────────────────────┘
 ```
 
-1. Receives requests in **Anthropic Messages API format**
-2. Uses OAuth tokens from added Google accounts (or Antigravity's local database)
-3. Transforms to **Google Generative AI format** with Cloud Code wrapping
-4. Sends to Antigravity's Cloud Code API
-5. Converts responses back to **Anthropic format** with full thinking/streaming support
-
 ## Prerequisites
 
-- **Node.js** 18 or later
-- **Antigravity** installed (for single-account mode) OR Google account(s) for multi-account mode
-
----
-
-## Installation
-
-### Option 1: npm (Recommended)
-
-```bash
-# Run directly with npx (no install needed)
-npx antigravity-claude-proxy start
-
-# Or install globally
-npm install -g antigravity-claude-proxy
-antigravity-claude-proxy start
-```
-
-### Option 2: Clone Repository
-
-```bash
-git clone https://github.com/badri-s2001/antigravity-claude-proxy.git
-cd antigravity-claude-proxy
-npm install
-npm start
-```
+- **Node.js** 18+
+- **Python** 3.10+ (for Perplexity models)
+- **Antigravity** installed (for Google AI access)
 
 ---
 
 ## Quick Start
 
-### 1. Add Account(s)
-
-You have two options:
-
-**Option A: Use Antigravity (Single Account)**
-
-If you have Antigravity installed and logged in, the proxy will automatically extract your token. No additional setup needed.
-
-**Option B: Add Google Accounts via OAuth (Recommended for Multi-Account)**
-
-Add one or more Google accounts for load balancing:
+### 1. Clone and Install
 
 ```bash
-# If installed via npm
-antigravity-claude-proxy accounts add
-
-# If using npx
-npx antigravity-claude-proxy accounts add
-
-# If cloned locally
-npm run accounts:add
+git clone https://github.com/ai-dev-2024/Claude-Cli-GoogleAiPro.git
+cd Claude-Cli-GoogleAiPro/antigravity-claude-proxy-main
+npm install
 ```
 
-This opens your browser for Google OAuth. Sign in and authorize access. Repeat for multiple accounts.
-
-Manage accounts:
+### 2. Start the Proxy
 
 ```bash
-# List all accounts
-antigravity-claude-proxy accounts list
-
-# Verify accounts are working
-antigravity-claude-proxy accounts verify
-
-# Interactive account management
-antigravity-claude-proxy accounts
-```
-
-### 2. Start the Proxy Server
-
-```bash
-# If installed via npm
-antigravity-claude-proxy start
-
-# If using npx
-npx antigravity-claude-proxy start
-
-# If cloned locally
 npm start
 ```
 
-The server runs on `http://localhost:8080` by default.
+The server runs on `http://localhost:8080`.
 
-### 3. Verify It's Working
+### 3. Configure Claude Code
 
-```bash
-# Health check
-curl http://localhost:8080/health
+Set environment variables (already done if using auto-start):
 
-# Check account status and quota limits
-curl "http://localhost:8080/account-limits?format=table"
-```
-
----
-
-## Using with Claude Code CLI
-
-### Configure Claude Code
-
-Create or edit the Claude Code settings file:
-
-**macOS:** `~/.claude/settings.json`
-**Linux:** `~/.claude/settings.json`
-**Windows:** `%USERPROFILE%\.claude\settings.json`
-
-Add this configuration:
-
-```json
-{
-  "env": {
-    "ANTHROPIC_AUTH_TOKEN": "test",
-    "ANTHROPIC_BASE_URL": "http://localhost:8080",
-    "ANTHROPIC_MODEL": "claude-opus-4-5-thinking",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-5-thinking",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-4-5-thinking",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-sonnet-4-5",
-    "CLAUDE_CODE_SUBAGENT_MODEL": "claude-sonnet-4-5-thinking"
-  }
-}
-```
-
-Or to use Gemini models:
-
-```json
-{
-  "env": {
-    "ANTHROPIC_AUTH_TOKEN": "test",
-    "ANTHROPIC_BASE_URL": "http://localhost:8080",
-    "ANTHROPIC_MODEL": "gemini-3-pro-high",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "gemini-3-pro-high",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "gemini-3-flash",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "gemini-2.5-flash-lite",
-    "CLAUDE_CODE_SUBAGENT_MODEL": "gemini-3-flash"
-  }
-}
-```
-
-### Load Environment Variables
-
-Add the proxy settings to your shell profile:
-
-**macOS / Linux:**
-
-```bash
-echo 'export ANTHROPIC_BASE_URL="http://localhost:8080"' >> ~/.zshrc
-echo 'export ANTHROPIC_API_KEY="test"' >> ~/.zshrc
-source ~/.zshrc
-```
-
-> For Bash users, replace `~/.zshrc` with `~/.bashrc`
-
-**Windows (PowerShell):**
-
-```powershell
-Add-Content $PROFILE "`n`$env:ANTHROPIC_BASE_URL = 'http://localhost:8080'"
-Add-Content $PROFILE "`$env:ANTHROPIC_API_KEY = 'test'"
-. $PROFILE
-```
-
-**Windows (Command Prompt):**
-
+**Windows:**
 ```cmd
 setx ANTHROPIC_BASE_URL "http://localhost:8080"
-setx ANTHROPIC_API_KEY "test"
+setx ANTHROPIC_API_KEY "antigravity-proxy"
 ```
 
-Restart your terminal for changes to take effect.
-
-### Run Claude Code
-
+**macOS/Linux:**
 ```bash
-# Make sure the proxy is running first
-antigravity-claude-proxy start
+export ANTHROPIC_BASE_URL="http://localhost:8080"
+export ANTHROPIC_API_KEY="antigravity-proxy"
+```
 
-# In another terminal, run Claude Code
+### 4. Use Claude Code
+
+From any terminal:
+```bash
 claude
 ```
-
-> **Note:** If Claude Code asks you to select a login method, add `"hasCompletedOnboarding": true` to `~/.claude.json` (macOS/Linux) or `%USERPROFILE%\.claude.json` (Windows), then restart your terminal and try again.
-
----
-
-## 🕹️ Power User Tips
-
-### YOLO Mode (Maximum Autonomy)
-Run Claude without permission prompts for tools or bash commands:
-```bash
-claude --dangerously-skip-permissions
-```
-
-### Auto-Accept Edits
-Toggle zero-click edits during your session using the keyboard:
-- **Shortcut**: `Shift + Tab`
-- **Effect**: Cycles through `Default` → `Auto-Accept` → `Plan Mode`
-- **Indicator**: Active mode is shown in the bottom-left status bar.
-
-### Manage Sessions
-- `/resume`: List and switch sessions inside Claude
-- `claude --resume`: List sessions from your terminal
-- `/rename "title"`: Name your current session
 
 ---
 
 ## Available Models
 
-### Claude Models
+### Google AI Models (via Antigravity)
 
 | Model ID | Description |
 |----------|-------------|
-| `claude-sonnet-4-5-thinking` | Claude Sonnet 4.5 with extended thinking |
+| `gemini-3-pro-high` | Gemini 3 Pro (recommended default) |
+| `gemini-3-flash` | Gemini 3 Flash (fast responses) |
 | `claude-opus-4-5-thinking` | Claude Opus 4.5 with extended thinking |
-| `claude-sonnet-4-5` | Claude Sonnet 4.5 without thinking |
+| `claude-sonnet-4-5-thinking` | Claude Sonnet 4.5 with extended thinking |
+| `gemini-2.5-flash-thinking` | Gemini 2.5 with extended thinking |
 
-### Gemini Models
+### Perplexity Pro Models (web-augmented)
 
 | Model ID | Description |
 |----------|-------------|
-| `gemini-3-flash` | Gemini 3 Flash with thinking |
-| `gemini-3-pro-low` | Gemini 3 Pro Low with thinking |
-| `gemini-3-pro-high` | Gemini 3 Pro High with thinking |
+| `pplx-claude-opus` | Claude Opus 4.5 via Perplexity |
+| `pplx-gpt51` / `pplx-gpt52` | GPT-5 via Perplexity |
+| `pplx-grok` | Grok 4.1 via Perplexity |
+| `pplx-kimi` | Kimi K2 Thinking via Perplexity |
+| `pplx-gemini-pro` | Gemini 3 Pro via Perplexity |
 
-Gemini models include full thinking support with `thoughtSignature` handling for multi-turn conversations.
+**Switch models:** `/model gemini-3-flash`
+
+---
+
+## Dashboard
+
+Access at **http://localhost:8080/dashboard**
+
+Features:
+- 📊 **Overview**: All accounts at a glance
+- ☁️ **Google Usage**: Per-model quota tracking
+- 🔮 **Perplexity Usage**: Request counts and per-model stats
+- 🩺 **Health Status**: Account availability monitoring
+- ✏️ **Rename/Delete**: Manage accounts directly
+
+---
+
+## Auto-Start Setup
+
+The proxy can auto-start on Windows login:
+
+1. **Startup Script**: `start-proxy.bat` in project root
+2. **Windows Shortcut**: Added to Startup folder
+3. **Environment Variables**: Set system-wide
+
+To manually start:
+```batch
+C:\path\to\start-proxy.bat
+```
+
+---
+
+## Perplexity Integration
+
+### Setup
+
+1. Start the proxy
+2. Go to Dashboard → Perplexity Usage → "+ Add Account"
+3. Login to your Perplexity Pro account in the browser
+4. Token is captured automatically
+
+### Python Server
+
+Perplexity requests are handled by a Python FastAPI server using `curl_cffi`:
+
+```bash
+cd perplexity-openai-api-ref
+pip install -e .
+python openai_server.py
+```
+
+The main proxy automatically forwards `pplx-*` model requests to this server.
 
 ---
 
 ## Multi-Account Load Balancing
 
-When you add multiple accounts, the proxy automatically:
-
-- **Sticky account selection**: Stays on the same account to maximize prompt cache hits
-- **Smart rate limit handling**: Waits for short rate limits (≤2 min), switches accounts for longer ones
-- **Automatic cooldown**: Rate-limited accounts become available after reset time expires
-- **Invalid account detection**: Accounts needing re-authentication are marked and skipped
-- **Prompt caching support**: Stable session IDs enable cache hits across conversation turns
-
-Check account status anytime:
-
-```bash
-curl "http://localhost:8080/account-limits?format=table"
-```
+When you add multiple accounts:
+- **Automatic rotation**: Switches when rate-limited
+- **Sticky sessions**: Maximizes prompt cache hits
+- **Cooldown management**: Accounts recover automatically
+- **Status tracking**: Dashboard shows real-time status
 
 ---
 
@@ -277,122 +164,56 @@ curl "http://localhost:8080/account-limits?format=table"
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/health` | GET | Health check |
-| `/account-limits` | GET | Account status and quota limits (add `?format=table` for ASCII table) |
 | `/v1/messages` | POST | Anthropic Messages API |
 | `/v1/models` | GET | List available models |
-| `/refresh-token` | POST | Force token refresh |
+| `/dashboard` | GET | Web dashboard |
+| `/account-limits` | GET | Account status |
+| `/perplexity-sessions` | GET/POST/PATCH/DELETE | Manage Perplexity accounts |
 
 ---
 
-## Testing
+## File Structure
 
-Run the test suite (requires server running):
-
-```bash
-# Start server in one terminal
-npm start
-
-# Run tests in another terminal
-npm test
 ```
+antigravity-claude-proxy-main/
+├── src/
+│   ├── server.js              # Main Express server
+│   ├── account-manager.js     # Google account handling
+│   ├── perplexity-*.js        # Perplexity integration
+│   └── public/
+│       └── dashboard.html     # Web dashboard
+├── start-proxy.bat            # Windows startup script
+└── package.json
 
-Individual tests:
-
-```bash
-npm run test:signatures    # Thinking signatures
-npm run test:multiturn     # Multi-turn with tools
-npm run test:streaming     # Streaming SSE events
-npm run test:interleaved   # Interleaved thinking
-npm run test:images        # Image processing
-npm run test:caching       # Prompt caching
+perplexity-openai-api-ref/
+├── openai_server.py           # FastAPI Perplexity server
+├── src/perplexity_webui_scraper/
+└── .env                       # Perplexity session token
 ```
 
 ---
 
 ## Troubleshooting
 
-### "Could not extract token from Antigravity"
+### Proxy not starting
+- Check if ports 8080 and 8000 are available
+- Verify Node.js and Python are installed
 
-If using single-account mode with Antigravity:
-1. Make sure Antigravity app is installed and running
-2. Ensure you're logged in to Antigravity
+### 403 errors from Perplexity
+- Ensure Python server is running on port 8000
+- Re-login via Dashboard if token expired
 
-Or add accounts via OAuth instead: `antigravity-claude-proxy accounts add`
-
-### 401 Authentication Errors
-
-The token might have expired. Try:
-```bash
-curl -X POST http://localhost:8080/refresh-token
-```
-
-Or re-authenticate the account:
-```bash
-antigravity-claude-proxy accounts
-```
-
-### Rate Limiting (429)
-
-With multiple accounts, the proxy automatically switches to the next available account. With a single account, you'll need to wait for the rate limit to reset.
-
-### Account Shows as "Invalid"
-
-Re-authenticate the account:
-```bash
-antigravity-claude-proxy accounts
-# Choose "Re-authenticate" for the invalid account
-```
+### Rate limiting
+- Add more accounts for automatic rotation
+- Check Dashboard for account status
 
 ---
 
-## Safety, Usage, and Risk Notices
+## Safety Notice
 
-### Intended Use
-
-- Personal / internal development only
-- Respect internal quotas and data handling policies
-- Not for production services or bypassing intended limits
-
-### Not Suitable For
-
-- Production application traffic
-- High-volume automated extraction
-- Any use that violates Acceptable Use Policies
-
-### Warning (Assumption of Risk)
-
-By using this software, you acknowledge and accept the following:
-
-- **Terms of Service risk**: This approach may violate the Terms of Service of AI model providers (Anthropic, Google, etc.). You are solely responsible for ensuring compliance with all applicable terms and policies.
-
-- **Account risk**: Providers may detect this usage pattern and take punitive action, including suspension, permanent ban, or loss of access to paid subscriptions.
-
-- **No guarantees**: Providers may change APIs, authentication, or policies at any time, which can break this method without notice.
-
-- **Assumption of risk**: You assume all legal, financial, and technical risks. The authors and contributors of this project bear no responsibility for any consequences arising from your use.
-
-**Use at your own risk. Proceed only if you understand and accept these risks.**
-
----
-
-## Legal
-
-- **Not affiliated with Google or Anthropic.** This is an independent open-source project and is not endorsed by, sponsored by, or affiliated with Google LLC or Anthropic PBC.
-
-- "Antigravity", "Gemini", "Google Cloud", and "Google" are trademarks of Google LLC.
-
-- "Claude" and "Anthropic" are trademarks of Anthropic PBC.
-
-- Software is provided "as is", without warranty. You are responsible for complying with all applicable Terms of Service and Acceptable Use Policies.
-
----
-
-## Credits
-
-This project is based on insights and code from:
-
-- [opencode-antigravity-auth](https://github.com/NoeFabris/opencode-antigravity-auth) - Antigravity OAuth plugin for OpenCode
-- [claude-code-proxy](https://github.com/1rgs/claude-code-proxy) - Anthropic API proxy using LiteLLM
+- For personal/development use only
+- Respect provider terms of service
+- You assume all risks of use
 
 ---
 
@@ -402,6 +223,8 @@ MIT
 
 ---
 
-## Star History
+## Credits
 
-[![Star History Chart](https://api.star-history.com/svg?repos=badri-s2001/antigravity-claude-proxy&type=date&legend=top-left&cache-control=no-cache)](https://www.star-history.com/#badri-s2001/antigravity-claude-proxy&type=date&legend=top-left)
+Based on work from:
+- [antigravity-claude-proxy](https://github.com/badri-s2001/antigravity-claude-proxy)
+- [perplexity-openai-api-ref](https://github.com/artp1ay/perplexity-openai-api-ref)

@@ -4,337 +4,1432 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Antigravity Proxy Dashboard</title>
+    <title>Antigravity Proxy</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #0f1117;
-            --card-bg: #1e212b;
-            --text-primary: #e6e6e6;
-            --text-secondary: #9ca3af;
-            --accent: #3b82f6;
-            --success: #10b981;
-            --warning: #f59e0b;
+            --background: #09090b;
+            --foreground: #fafafa;
+            --card: #18181b;
+            --card-foreground: #fafafa;
+            --secondary: #27272a;
+            --muted: #27272a;
+            --muted-foreground: #a1a1aa;
+            --accent: #27272a;
+            --accent-foreground: #fafafa;
+            --border: #27272a;
+            --input: #27272a;
+            --ring: #d4d4d8;
+            --success: #22c55e;
+            --warning: #eab308;
             --danger: #ef4444;
-            --border: #2d3748;
+            --radius: 0.5rem;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            margin: 0;
-            padding: 2rem;
-            line-height: 1.5;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        header {
+            background: var(--background);
+            color: var(--foreground);
+            min-height: 100vh;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            padding-bottom: 1rem;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 220px;
+            background: var(--card);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            z-index: 50;
+        }
+
+        .sidebar-header {
+            padding: 1rem;
             border-bottom: 1px solid var(--border);
         }
 
-        h1 {
-            margin: 0;
-            font-size: 1.5rem;
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
             font-weight: 600;
+            font-size: 0.9rem;
         }
 
-        .refresh-btn {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border);
-            color: var(--text-primary);
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
+        .sidebar-logo-icon {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 0.75rem;
+            overflow-y: auto;
+        }
+
+        .nav-section {
+            margin-bottom: 1.25rem;
+        }
+
+        .nav-section-title {
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--muted-foreground);
+            padding: 0 0.5rem;
+            margin-bottom: 0.35rem;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 0.5rem;
+            border-radius: var(--radius);
+            color: var(--muted-foreground);
+            text-decoration: none;
+            font-size: 0.8rem;
+            transition: all 0.15s;
             cursor: pointer;
-            transition: all 0.2s;
         }
 
-        .refresh-btn:hover {
-            background-color: var(--border);
+        .nav-item:hover {
+            background: var(--accent);
+            color: var(--foreground);
         }
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
+        .nav-item.active {
+            background: var(--accent);
+            color: var(--foreground);
         }
 
+        .nav-icon {
+            font-size: 0.9rem;
+        }
+
+        .sidebar-footer {
+            padding: 0.75rem;
+            border-top: 1px solid var(--border);
+            font-size: 0.7rem;
+        }
+
+        .sidebar-footer a {
+            color: var(--muted-foreground);
+            text-decoration: none;
+        }
+
+        .sidebar-footer a:hover {
+            color: var(--foreground);
+        }
+
+        /* Main */
+        .main {
+            flex: 1;
+            margin-left: 220px;
+            min-height: 100vh;
+        }
+
+        .header {
+            height: 50px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.25rem;
+            background: var(--card);
+            position: sticky;
+            top: 0;
+            z-index: 40;
+        }
+
+        .header-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .content {
+            padding: 1.25rem;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        /* Cards */
         .card {
-            background-color: var(--card-bg);
-            border-radius: 0.75rem;
-            padding: 1rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            background: var(--card);
             border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem;
+            margin-bottom: 1rem;
         }
 
         .card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        .account-email {
-            font-weight: 600;
-            color: var(--accent);
-            text-overflow: ellipsis;
-            overflow: hidden;
-            white-space: nowrap;
-        }
-
-        .status-badge {
-            padding: 0.25rem 0.5rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            text-transform: uppercase;
-        }
-
-        .status-ok {
-            background-color: rgba(16, 185, 129, 0.2);
-            color: var(--success);
-        }
-
-        .status-limited {
-            background-color: rgba(245, 158, 11, 0.2);
-            color: var(--warning);
-        }
-
-        .status-error {
-            background-color: rgba(239, 68, 68, 0.2);
-            color: var(--danger);
-        }
-
-        .quota-list {
-            margin-top: 1rem;
-            font-size: 0.875rem;
-        }
-
-        .quota-item {
             margin-bottom: 0.75rem;
         }
 
-        .quota-label {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.25rem;
-            color: var(--text-secondary);
+        .card-title {
+            font-weight: 600;
+            font-size: 0.9rem;
         }
 
-        .progress-bar-bg {
-            width: 100%;
-            height: 6px;
-            background-color: #374151;
+        .card-description {
+            font-size: 0.75rem;
+            color: var(--muted-foreground);
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem;
+        }
+
+        .stat-label {
+            font-size: 0.65rem;
+            color: var(--muted-foreground);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.35rem;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .stat-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.2rem;
+            font-size: 0.65rem;
+            margin-top: 0.35rem;
+        }
+
+        .stat-indicator.success {
+            color: var(--success);
+        }
+
+        .stat-indicator.warning {
+            color: var(--warning);
+        }
+
+        .stat-indicator.danger {
+            color: var(--danger);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            padding: 0.4rem 0.75rem;
+            border-radius: var(--radius);
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            border: 1px solid transparent;
+        }
+
+        .btn-primary {
+            background: var(--foreground);
+            color: var(--background);
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: var(--foreground);
+            border-color: var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--accent);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--muted-foreground);
+        }
+
+        .btn-ghost:hover {
+            background: var(--accent);
+            color: var(--foreground);
+        }
+
+        .btn-sm {
+            padding: 0.3rem 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        /* Account cards */
+        .accounts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .account-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            cursor: pointer;
+            transition: border-color 0.15s;
+        }
+
+        .account-card:hover {
+            border-color: var(--muted-foreground);
+        }
+
+        .account-card.selected {
+            border-color: var(--foreground);
+        }
+
+        .account-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .account-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .account-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .account-avatar.google {
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+        }
+
+        .account-avatar.perplexity {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        }
+
+        .account-email {
+            font-weight: 500;
+            font-size: 0.8rem;
+        }
+
+        .account-type {
+            font-size: 0.65rem;
+            color: var(--muted-foreground);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.15rem 0.4rem;
+            border-radius: 9999px;
+            font-size: 0.6rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-success {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--success);
+        }
+
+        .badge-warning {
+            background: rgba(234, 179, 8, 0.15);
+            color: var(--warning);
+        }
+
+        .badge-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+        }
+
+        .account-body {
+            padding: 0.75rem;
+        }
+
+        /* Quota bars */
+        .quota-item {
+            margin-bottom: 0.5rem;
+        }
+
+        .quota-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.25rem;
+        }
+
+        .quota-label {
+            font-size: 0.7rem;
+            color: var(--muted-foreground);
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .quota-value {
+            font-size: 0.65rem;
+            color: var(--muted-foreground);
+        }
+
+        .quota-bar {
+            height: 5px;
+            background: var(--secondary);
             border-radius: 3px;
             overflow: hidden;
         }
 
-        .progress-bar-fill {
+        .quota-fill {
             height: 100%;
             border-radius: 3px;
-            transition: width 0.5s ease;
+            transition: width 0.3s;
         }
 
-        .bg-green {
-            background-color: var(--success);
+        .quota-fill.high {
+            background: var(--success);
         }
 
-        .bg-yellow {
-            background-color: var(--warning);
+        .quota-fill.medium {
+            background: var(--warning);
         }
 
-        .bg-red {
-            background-color: var(--danger);
+        .quota-fill.low {
+            background: var(--danger);
         }
 
-        .last-used {
+        .btn-delete {
+            background: none;
+            border: none;
+            color: var(--muted-foreground);
+            cursor: pointer;
+            padding: 0.25rem 0.4rem;
             font-size: 0.75rem;
-            color: var(--text-secondary);
-            margin-top: 1rem;
-            text-align: right;
-        }
-
-        .error-msg {
-            color: var(--danger);
-            font-size: 0.8rem;
-            margin-top: 0.5rem;
-            background: rgba(239, 68, 68, 0.1);
-            padding: 0.5rem;
             border-radius: 4px;
+            transition: all 0.15s;
         }
 
-        /* Loading spinner */
-        .spinner {
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            width: 16px;
-            height: 16px;
+        .btn-delete:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .copy-btn {
+            background: none;
+            border: none;
+            color: var(--muted-foreground);
+            cursor: pointer;
+            padding: 0.1rem 0.2rem;
+            border-radius: 3px;
+            font-size: 0.65rem;
+        }
+
+        .copy-btn:hover {
+            color: var(--foreground);
+            background: var(--accent);
+        }
+
+        /* Models table */
+        .models-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .models-table th,
+        .models-table td {
+            padding: 0.5rem 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.8rem;
+        }
+
+        .models-table th {
+            font-weight: 600;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: var(--muted-foreground);
+        }
+
+        .models-table tr:hover {
+            background: var(--accent);
+        }
+
+        .model-id {
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.75rem;
+        }
+
+        /* Health indicators */
+        .health-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .health-item:last-child {
+            border-bottom: none;
+        }
+
+        .health-label {
+            font-size: 0.8rem;
+        }
+
+        .health-value {
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .health-dot {
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            border-left-color: var(--accent);
-            animation: spin 1s linear infinite;
             display: inline-block;
-            vertical-align: middle;
-            margin-right: 8px;
+            margin-right: 0.35rem;
         }
 
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
+        .health-dot.ok {
+            background: var(--success);
         }
 
-        footer {
-            margin-top: 3rem;
-            text-align: center;
-            color: var(--text-secondary);
-            font-size: 0.875rem;
+        .health-dot.error {
+            background: var(--danger);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.25rem;
+            max-width: 450px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .modal-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--muted-foreground);
+            cursor: pointer;
+            font-size: 1.1rem;
+        }
+
+        .form-group {
+            margin-bottom: 0.75rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-bottom: 0.35rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.5rem 0.6rem;
+            background: var(--input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--foreground);
+            font-size: 0.8rem;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--ring);
+        }
+
+        .steps {
+            background: var(--secondary);
+            border-radius: var(--radius);
+            padding: 0.75rem;
+            margin: 0.75rem 0;
+        }
+
+        .step {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .step:last-child {
+            margin-bottom: 0;
+        }
+
+        .step-number {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--muted-foreground);
+            color: var(--background);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .step-text {
+            font-size: 0.75rem;
+            color: var(--muted-foreground);
+            line-height: 1.4;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            background: var(--card);
+            border: 1px solid var(--border);
+            padding: 0.6rem 0.8rem;
+            border-radius: var(--radius);
+            font-size: 0.8rem;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.2s;
+            z-index: 200;
+            max-width: 300px;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast.success {
+            border-color: var(--success);
+        }
+
+        .toast.error {
+            border-color: var(--danger);
+        }
+
+        code {
+            background: var(--secondary);
+            padding: 0.1rem 0.3rem;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        /* Account detail */
+        .account-detail {
+            margin-top: 1rem;
+        }
+
+        .account-detail-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .account-detail-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .account-detail-name {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .account-detail-type {
+            font-size: 0.75rem;
+            color: var(--muted-foreground);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+
+            .main {
+                margin-left: 0;
+            }
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <header>
-            <h1>Antigravity Proxy Dashboard</h1>
-            <div>
-                <span id="last-updated"
-                    style="margin-right: 1rem; color: var(--text-secondary); font-size: 0.875rem;"></span>
-                <button class="refresh-btn" onclick="fetchData()">Refresh</button>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <div class="sidebar-logo-icon">⚡</div>
+                <span>Antigravity Proxy</span>
+            </div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-section">
+                <div class="nav-section-title">Dashboard</div>
+                <a class="nav-item active" data-page="overview">
+                    <span class="nav-icon">📊</span> Overview
+                </a>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-title">Pages</div>
+                <a class="nav-item" data-page="health">
+                    <span class="nav-icon">🩺</span> Health Status
+                </a>
+                <a class="nav-item" data-page="models">
+                    <span class="nav-icon">🧠</span> Available Models
+                </a>
+                <a class="nav-item" data-page="usage">
+                    <span class="nav-icon">☁️</span> Google Usage
+                </a>
+                <a class="nav-item" data-page="perplexity">
+                    <span class="nav-icon">🔮</span> Perplexity Usage
+                </a>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-title">Links</div>
+                <a href="https://github.com/ai-dev-2024/Claude-Cli-GoogleAiPro" target="_blank" class="nav-item">
+                    <span class="nav-icon">💻</span> GitHub
+                </a>
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            <a href="https://ko-fi.com/ai_dev_2024" target="_blank">☕ Support</a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main">
+        <header class="header">
+            <span class="header-title" id="page-title">Overview</span>
+            <div class="header-actions">
+                <span id="last-updated" style="font-size: 0.7rem; color: var(--muted-foreground);"></span>
+                <button class="btn btn-secondary btn-sm" onclick="fetchAllData()">↻ Refresh</button>
             </div>
         </header>
 
-        <div id="accounts-grid" class="stats-grid">
-            <!-- Accounts will be injected here -->
-            <div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: var(--text-secondary);">
-                <div class="spinner"></div> Loading account data...
+        <div class="content">
+            <!-- Overview Page -->
+            <div id="page-overview" class="page active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Status</div>
+                        <div class="stat-value" id="proxy-status" style="color: var(--success);">●</div>
+                        <div class="stat-indicator success" id="status-text">Online</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Google AI</div>
+                        <div class="stat-value" id="google-count">-</div>
+                        <div class="stat-indicator success">Accounts</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Perplexity</div>
+                        <div class="stat-value" id="pplx-count">-</div>
+                        <div class="stat-indicator success">Accounts</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Models</div>
+                        <div class="stat-value" id="models-count">-</div>
+                        <div class="stat-indicator success">Available</div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                    <button class="btn btn-primary" onclick="openGoogleModal()">+ Google AI Account</button>
+                    <button class="btn btn-secondary" id="pplx-btn" onclick="startPerplexityLogin()">+ Perplexity
+                        Account</button>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Connected Accounts</div>
+                            <div class="card-description">Click an account to view usage details</div>
+                        </div>
+                    </div>
+                    <div id="overview-accounts" class="accounts-grid"></div>
+                </div>
+            </div>
+
+            <!-- Health Page -->
+            <div id="page-health" class="page">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">System Health</div>
+                    </div>
+                    <div id="health-content"></div>
+                </div>
+            </div>
+
+            <!-- Models Page -->
+            <div id="page-models" class="page">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Available Models</div>
+                            <div class="card-description">All models you can use with <code>/model &lt;name&gt;</code>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table class="models-table">
+                            <thead>
+                                <tr>
+                                    <th>Model ID</th>
+                                    <th>Provider</th>
+                                    <th>Description</th>
+                                    <th>Uses</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="models-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Usage Page -->
+            <div id="page-usage" class="page">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Usage Limits</div>
+                            <div class="card-description">Select an account to view model usage</div>
+                        </div>
+                    </div>
+                    <div id="usage-accounts" class="accounts-grid"></div>
+                </div>
+                <div id="usage-detail" class="account-detail" style="display: none;">
+                    <div class="card">
+                        <div class="account-detail-header">
+                            <div id="detail-avatar" class="account-detail-avatar google"></div>
+                            <div>
+                                <div id="detail-email" class="account-detail-name"></div>
+                                <div id="detail-type" class="account-detail-type"></div>
+                            </div>
+                        </div>
+                        <div id="detail-quotas"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Perplexity Page -->
+            <div id="page-perplexity" class="page">
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                    <button class="btn btn-primary" id="pplx-add-btn" onclick="startPerplexityLogin()">+ Add
+                        Account</button>
+                    <button class="btn btn-secondary" onclick="openPerplexityModal()">Paste Token</button>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Perplexity Pro Accounts</div>
+                            <div class="card-description">Session-based access to Perplexity Pro models</div>
+                        </div>
+                    </div>
+                    <div id="pplx-accounts"></div>
+                </div>
             </div>
         </div>
+    </main>
 
-        <footer>
-            <div style="display: flex; align-items: center; justify-content: center; gap: 1rem;">
-                <p style="margin: 0;">Antigravity Claude Proxy</p>
-                <a href="https://ko-fi.com/ai_dev_2024" target="_blank"
-                    style="display: inline-flex; align-items: center; text-decoration: none; background: #29abe0; color: white; padding: 4px 12px; border-radius: 999px; font-weight: 600; font-size: 0.8rem;">
-                    <span style="margin-right: 4px;">☕</span> Support
-                </a>
+    <!-- Google Modal -->
+    <div id="google-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Add Google AI Account</div>
+                <button class="modal-close" onclick="closeModal('google-modal')">×</button>
             </div>
-        </footer>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-text">Open <strong>Antigravity IDE</strong></div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-text">Login with your Google account</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-text">Open a chat panel and send a message</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-text">Click <strong>Refresh</strong> on this dashboard</div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                <button class="btn btn-secondary" onclick="closeModal('google-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="fetchAllData(); closeModal('google-modal');">Refresh</button>
+            </div>
+        </div>
     </div>
 
-    <script>
-        // Use key priority models to show in condensed view
-        const PRIORITY_MODELS = [
-            'gemini-3-pro-high',
-            'gemini-3-flash',
-            'claude-opus-4-5-thinking',
-            'claude-sonnet-4-5'
-        ];
+    <!-- Perplexity Modal -->
+    <div id="perplexity-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Add Perplexity Token</div>
+                <button class="modal-close" onclick="closeModal('perplexity-modal')">×</button>
+            </div>
+            <form id="pplx-form" onsubmit="return addPplxAccount(event)">
+                <div class="form-group">
+                    <label class="form-label">Email (optional)</label>
+                    <input type="email" class="form-input" id="pplx-email" placeholder="your@email.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Session Token</label>
+                    <input type="text" class="form-input" id="pplx-token" required placeholder="Cookie value">
+                </div>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-text">Go to perplexity.ai and login</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-text">F12 → Application → Cookies</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-text">Copy <code>__Secure-next-auth.session-token</code></div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary"
+                        onclick="closeModal('perplexity-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-        function getProgressBarColor(percent) {
-            if (percent > 50) return 'bg-green';
-            if (percent > 20) return 'bg-yellow';
-            return 'bg-red';
+    <div id="toast" class="toast"></div>
+
+    <script>
+        let cachedData = { limits: null, pplx: null, models: null, health: null };
+        let selectedAccount = null;
+
+        // Navigation
+        document.querySelectorAll('.nav-item[data-page]').forEach(item => {
+            item.addEventListener('click', () => {
+                const page = item.dataset.page;
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                item.classList.add('active');
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                document.getElementById('page-' + page).classList.add('active');
+                document.getElementById('page-title').textContent = item.textContent.trim();
+            });
+        });
+
+        function showToast(msg, isError = false) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = isError ? 'toast show error' : 'toast show success';
+            setTimeout(() => t.classList.remove('show'), 3000);
         }
 
-        async function fetchData() {
-            const grid = document.getElementById('accounts-grid');
-            const updatedSpan = document.getElementById('last-updated');
-
-            updatedSpan.textContent = 'Updating...';
-
-            try {
-                const response = await fetch('http://localhost:8080/account-limits');
-                const data = await response.json();
-
-                grid.innerHTML = ''; // Clear loading state
-
-                // Sort: Most recently used (active) first
-                data.accounts.sort((a, b) => (b.lastUsed || 0) - (a.lastUsed || 0));
-
-                data.accounts.forEach(acc => {
-                    const card = document.createElement('div');
-                    card.className = 'card';
-
-                    let statusClass = 'status-ok';
-                    let statusText = 'ACTIVE';
-
-                    if (acc.status === 'rate-limited') {
-                        statusClass = 'status-limited';
-                        statusText = 'RATE LIMITED';
-                    } else if (acc.status !== 'ok') {
-                        statusClass = 'status-error';
-                        statusText = 'ERROR';
-                    }
-
-                    // Build quotas HTML
-                    let quotasHtml = '';
-                    const modelsToShow = PRIORITY_MODELS.filter(m => acc.limits && acc.limits[m]);
-
-                    if (modelsToShow.length > 0) {
-                        quotasHtml = '<div class="quota-list">';
-                        modelsToShow.forEach(model => {
-                            const quota = acc.limits[model];
-                            const percent = Math.round((quota.remainingFraction || 0) * 100);
-                            const color = getProgressBarColor(percent);
-
-                            quotasHtml += `
-                                <div class="quota-item">
-                                    <div class="quota-label">
-                                        <span>${model}</span>
-                                        <span>${percent}%</span>
-                                    </div>
-                                    <div class="progress-bar-bg">
-                                        <div class="progress-bar-fill ${color}" style="width: ${percent}%"></div>
-                                    </div>
-                                    ${quota.resetTime ? `<div style="font-size: 0.7rem; color: #6b7280; margin-top: 2px;">Reset: ${new Date(quota.resetTime).toLocaleTimeString()}</div>` : ''}
-                                </div>
-                            `;
-                        });
-                        quotasHtml += '</div>';
-                    } else {
-                        quotasHtml = '<div style="color: var(--text-secondary); font-size: 0.875rem; margin-top: 1rem;">No usage data available yet.</div>';
-                    }
-
-                    // Error message if any
-                    const errorHtml = acc.error ? `<div class="error-msg">${acc.error}</div>` : '';
-
-                    card.innerHTML = `
-                        <div class="card-header">
-                            <div class="account-email" title="${acc.email}">${acc.email}</div>
-                            <span class="status-badge ${statusClass}">${statusText}</span>
-                        </div>
-                        ${quotasHtml}
-                        ${errorHtml}
-                    `;
-                    grid.appendChild(card);
-                });
-
-                updatedSpan.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
-
-            } catch (error) {
-                console.error('Error fetching data:', error);
-                updatedSpan.textContent = 'Failed to update';
-                grid.innerHTML = `<div style="color: var(--danger); text-align: center;">Error loading dashboard: ${error.message}</div>`;
+        function confirmDeleteAccount(email, type) {
+            const typeName = type === 'perplexity' ? 'Perplexity' : 'Google AI';
+            if (confirm(`Are you sure you want to remove the ${typeName} account "${email}"?\n\nThis action cannot be undone.`)) {
+                deleteAccount(email, type);
             }
         }
 
-        // Initial fetch
-        fetchData();
+        async function deleteAccount(email, type) {
+            try {
+                let url, method;
+                if (type === 'perplexity') {
+                    url = `/perplexity-sessions/${encodeURIComponent(email)}`;
+                    method = 'DELETE';
+                } else {
+                    // For Google accounts, we'd need to implement this endpoint
+                    showToast('Google account removal not yet implemented', true);
+                    return;
+                }
 
-        // Auto-refresh every 30 seconds
-        setInterval(fetchData, 30000);
+                const res = await fetch(url, { method });
+                if (res.ok) {
+                    showToast(`Account "${email}" removed successfully`);
+                    await fetchAllData();
+                } else {
+                    const err = await res.text();
+                    showToast(`Failed to remove account: ${err}`, true);
+                }
+            } catch (e) {
+                showToast(`Error removing account: ${e.message}`, true);
+            }
+        }
+
+        function openGoogleModal() { document.getElementById('google-modal').classList.add('show'); }
+        function openPerplexityModal() { document.getElementById('perplexity-modal').classList.add('show'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+        async function renamePerplexityAccount(email) {
+            const newName = prompt('Enter a new name for this Perplexity account:', email);
+            if (!newName || newName === email) return;
+
+            try {
+                const res = await fetch(`/perplexity-sessions/${encodeURIComponent(email)}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ newName })
+                });
+                if (res.ok) {
+                    showToast(`Account renamed to "${newName}"`);
+                    await fetchAllData();
+                } else {
+                    const err = await res.json();
+                    showToast(`Failed to rename: ${err.error}`, true);
+                }
+            } catch (e) {
+                showToast(`Error renaming: ${e.message}`, true);
+            }
+        }
+
+        document.querySelectorAll('.modal-overlay').forEach(o => {
+            o.addEventListener('click', e => { if (e.target === o) closeModal(o.id); });
+        });
+
+        // Smooth color gradient: green (100%) -> yellow (50%) -> red (0%)
+        function getQuotaColor(percent) {
+            // Hue: 0 = red, 60 = yellow, 120 = green
+            const hue = Math.round((percent / 100) * 120);
+            return `hsl(${hue}, 70%, 45%)`;
+        }
+        function getQuotaClass(p) { return p > 50 ? 'high' : p > 20 ? 'medium' : 'low'; }
+
+        function copyCmd(modelId) {
+            navigator.clipboard.writeText('/model ' + modelId);
+            showToast('Copied: /model ' + modelId);
+        }
+
+        async function fetchAllData() {
+            document.getElementById('last-updated').textContent = 'Loading...';
+            try {
+                const [limitsRes, pplxRes, modelsRes, healthRes, usageRes, pplxStatsRes] = await Promise.all([
+                    fetch('/account-limits'),
+                    fetch('/perplexity-sessions'),
+                    fetch('/v1/models'),
+                    fetch('/health'),
+                    fetch('/model-usage'),
+                    fetch('/perplexity-stats')
+                ]);
+                cachedData.limits = await limitsRes.json();
+                cachedData.pplx = await pplxRes.json();
+                cachedData.models = await modelsRes.json();
+                cachedData.health = await healthRes.json();
+                cachedData.usage = await usageRes.json();
+                cachedData.pplxStats = await pplxStatsRes.json();
+
+                document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
+                renderAll();
+            } catch (e) {
+                console.error('Fetch error:', e);
+                document.getElementById('status-text').textContent = 'Offline';
+                document.getElementById('proxy-status').style.color = 'var(--danger)';
+            }
+        }
+
+        function renderAll() {
+            renderOverview();
+            renderHealth();
+            renderModels();
+            renderUsage();
+            renderPerplexity();
+        }
+
+        function renderOverview() {
+            const g = cachedData.limits?.accounts?.length || 0;
+            const p = cachedData.pplx?.count || 0;
+            const m = cachedData.models?.data?.length || 0;
+            document.getElementById('google-count').textContent = g;
+            document.getElementById('pplx-count').textContent = p;
+            document.getElementById('models-count').textContent = m;
+
+            const allAccounts = [...(cachedData.limits?.accounts || []).map(a => ({ ...a, type: 'google' })),
+            ...(cachedData.pplx?.accounts || []).map(a => ({ ...a, type: 'perplexity' }))];
+
+            if (allAccounts.length === 0) {
+                document.getElementById('overview-accounts').innerHTML = '<div style="padding:1rem;color:var(--muted-foreground);">No accounts configured</div>';
+                return;
+            }
+
+            document.getElementById('overview-accounts').innerHTML = allAccounts.map(a => renderAccountCard(a, true)).join('');
+        }
+
+        function renderAccountCard(acc, selectable = true) {
+            const email = acc.email || 'Unknown';
+            const initial = email[0].toUpperCase();
+            const type = acc.type === 'perplexity' ? 'Perplexity Pro' : 'Google AI';
+            const avatarClass = acc.type === 'perplexity' ? 'perplexity' : 'google';
+            const status = acc.isRateLimited ? 'Limited' : acc.status === 'error' ? 'Error' : 'Active';
+            const badgeClass = status === 'Active' ? 'badge-success' : status === 'Limited' ? 'badge-warning' : 'badge-danger';
+            const onclick = selectable ? `onclick="selectAccount('${email}')"` : '';
+            const selected = selectedAccount === email ? 'selected' : '';
+            const accountType = acc.type === 'perplexity' ? 'perplexity' : 'google';
+
+            return `<div class="account-card ${selected}" ${onclick}>
+                <div class="account-header">
+                    <div class="account-info">
+                        <div class="account-avatar ${avatarClass}">${initial}</div>
+                        <div><div class="account-email">${email.split('@')[0]}</div><div class="account-type">${type}</div></div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:0.5rem;">
+                        <span class="badge ${badgeClass}">${status}</span>
+                        ${acc.type === 'perplexity' ? `<button class="btn-delete" onclick="event.stopPropagation();renamePerplexityAccount('${email}')" title="Rename account" style="background:none;color:var(--muted-foreground);">✏️</button>` : ''}
+                        <button class="btn-delete" onclick="event.stopPropagation();confirmDeleteAccount('${email}','${accountType}')" title="Remove account">✕</button>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function renderHealth() {
+            const h = cachedData.health || {};
+            const items = [
+                { label: 'Status', value: h.status || 'unknown', ok: h.status === 'ok' },
+                { label: 'Total Accounts', value: h.available + h.rateLimited || 0, ok: true },
+                { label: 'Available', value: h.available || 0, ok: h.available > 0 },
+                { label: 'Rate Limited', value: h.rateLimited || 0, ok: h.rateLimited === 0 },
+                { label: 'Invalid', value: h.invalid || 0, ok: h.invalid === 0 },
+                { label: 'Timestamp', value: h.timestamp ? new Date(h.timestamp).toLocaleString() : '-', ok: true }
+            ];
+            document.getElementById('health-content').innerHTML = items.map(i =>
+                `<div class="health-item"><span class="health-label"><span class="health-dot ${i.ok ? 'ok' : 'error'}"></span>${i.label}</span><span class="health-value">${i.value}</span></div>`
+            ).join('');
+        }
+
+        function renderModels() {
+            const models = cachedData.models?.data || [];
+            const usage = cachedData.usage || { google: {}, perplexity: {} };
+
+            if (models.length === 0) {
+                document.getElementById('models-tbody').innerHTML = '<tr><td colspan="5" style="color:var(--muted-foreground);">No models available</td></tr>';
+                return;
+            }
+            document.getElementById('models-tbody').innerHTML = models.map(m => {
+                const isPerplexity = m.owned_by === 'perplexity' || m.id.startsWith('pplx') || m.id.startsWith('perplexity');
+                const provider = isPerplexity ? 'perplexity' : 'google';
+                const usageCount = isPerplexity ? (usage.perplexity[m.id] || 0) : (usage.google[m.id] || 0);
+                const providerLabel = isPerplexity ? '🟣 Perplexity' : '🔵 Google AI';
+                return `<tr>
+                    <td><span class="model-id">${m.id}</span></td>
+                    <td>${providerLabel}</td>
+                    <td style="color:var(--muted-foreground);font-size:0.75rem;">${m.description || '-'}</td>
+                    <td style="font-size:0.75rem;">${usageCount} uses</td>
+                    <td><button class="btn btn-ghost btn-sm" onclick="copyCmd('${m.id}')">📋</button></td>
+                </tr>`;
+            }).join('');
+        }
+
+        function renderUsage() {
+            const accounts = cachedData.limits?.accounts || [];
+            if (accounts.length === 0) {
+                document.getElementById('usage-accounts').innerHTML = '<div style="padding:1rem;color:var(--muted-foreground);">No Google AI accounts</div>';
+                return;
+            }
+            document.getElementById('usage-accounts').innerHTML = accounts.map(a => renderAccountCard({ ...a, type: 'google' }, true)).join('');
+
+            // Show first account by default if none selected
+            if (!selectedAccount && accounts.length > 0) {
+                selectAccount(accounts[0].email);
+            }
+        }
+
+        function selectAccount(email) {
+            selectedAccount = email;
+
+            // Check if it's a Google account
+            const googleAcc = cachedData.limits?.accounts?.find(a => a.email === email);
+
+            // Check if it's a Perplexity account
+            const pplxAcc = cachedData.pplx?.accounts?.find(a => a.email === email);
+
+            if (pplxAcc) {
+                // Navigate to Perplexity page
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                document.querySelector('.nav-item[data-page="perplexity"]').classList.add('active');
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                document.getElementById('page-perplexity').classList.add('active');
+                document.getElementById('page-title').textContent = 'Perplexity Usage';
+                return;
+            }
+
+            if (!googleAcc) return;
+
+            // Navigate to Usage page for Google accounts
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.querySelector('.nav-item[data-page="usage"]').classList.add('active');
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-usage').classList.add('active');
+            document.getElementById('page-title').textContent = 'Google Usage';
+
+            // Update UI
+            document.querySelectorAll('#usage-accounts .account-card').forEach(c => c.classList.remove('selected'));
+            document.querySelector(`#usage-accounts .account-card[onclick*="${email}"]`)?.classList.add('selected');
+
+            document.getElementById('usage-detail').style.display = 'block';
+            document.getElementById('detail-avatar').textContent = email[0].toUpperCase();
+            document.getElementById('detail-email').textContent = email;
+            document.getElementById('detail-type').textContent = 'Google AI Pro';
+
+            const limits = googleAcc.limits || {};
+
+            // Group models by provider
+            const groups = {
+                'Gemini 3': [],
+                'Gemini 2.5': [],
+                'Claude': [],
+                'GPT': [],
+                'Other': []
+            };
+
+            for (const [modelId, info] of Object.entries(limits)) {
+                const remaining = info.remainingFraction !== undefined ? Math.round(info.remainingFraction * 100) : 50;
+                const cls = getQuotaClass(remaining);
+                const reset = info.resetTime ? new Date(info.resetTime).toLocaleString() : null;
+
+                const item = { modelId, remaining, cls, reset };
+
+                if (modelId.includes('gemini-3')) groups['Gemini 3'].push(item);
+                else if (modelId.includes('gemini-2.5') || modelId.includes('gemini-2')) groups['Gemini 2.5'].push(item);
+                else if (modelId.includes('claude')) groups['Claude'].push(item);
+                else if (modelId.includes('gpt')) groups['GPT'].push(item);
+                else groups['Other'].push(item);
+            }
+
+            let html = '';
+            for (const [groupName, items] of Object.entries(groups)) {
+                if (items.length === 0) continue;
+
+                html += `<div style="margin-bottom:1rem;">
+                    <div style="font-size:0.75rem;font-weight:600;color:var(--muted-foreground);margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.05em;">${groupName}</div>`;
+
+                for (const { modelId, remaining, cls, reset } of items) {
+                    const barColor = getQuotaColor(remaining);
+                    html += `<div class="quota-item">
+                        <div class="quota-header">
+                            <span class="quota-label">${modelId} <button class="copy-btn" onclick="copyCmd('${modelId}')">📋</button></span>
+                            <span class="quota-value">${remaining}%${reset ? ' • Resets: ' + reset : ''}</span>
+                        </div>
+                        <div class="quota-bar"><div class="quota-fill" style="width:${remaining}%;background:${barColor}"></div></div>
+                    </div>`;
+                }
+                html += '</div>';
+            }
+
+            document.getElementById('detail-quotas').innerHTML = html || '<div style="color:var(--muted-foreground);padding:0.5rem 0;">No quota data available</div>';
+        }
+
+        function renderPerplexity() {
+            const accounts = cachedData.pplx?.accounts || [];
+            const stats = cachedData.pplxStats || {};
+            const modelUsage = cachedData.usage?.perplexity || {};
+
+            // Show stats summary at the top
+            let statsHtml = '';
+            if (!stats.error) {
+                const reqToday = stats.requests || cachedData.usage?.totalPerplexity || 0;
+                const activeConvs = stats.conversations?.total || 0;
+                statsHtml = `
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:0.75rem;margin-bottom:1rem;">
+                        <div class="card" style="padding:0.75rem;text-align:center;">
+                            <div style="font-size:1.5rem;font-weight:600;color:var(--purple);">${reqToday}</div>
+                            <div style="font-size:0.7rem;color:var(--muted-foreground);">Requests Today</div>
+                        </div>
+                        <div class="card" style="padding:0.75rem;text-align:center;">
+                            <div style="font-size:1.5rem;font-weight:600;color:var(--purple);">${activeConvs}</div>
+                            <div style="font-size:0.7rem;color:var(--muted-foreground);">Conversations</div>
+                        </div>
+                        <div class="card" style="padding:0.75rem;text-align:center;">
+                            <div style="font-size:1.5rem;font-weight:600;color:var(--success);">~500</div>
+                            <div style="font-size:0.7rem;color:var(--muted-foreground);">Daily Pro Limit</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Show per-model usage
+            const modelEntries = Object.entries(modelUsage);
+            if (modelEntries.length > 0) {
+                statsHtml += `
+                    <div class="card" style="padding:1rem;margin-bottom:1rem;">
+                        <div style="font-size:0.85rem;font-weight:600;margin-bottom:0.75rem;">📊 Per-Model Usage</div>
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0.5rem;">
+                            ${modelEntries.map(([model, count]) => `
+                                <div style="display:flex;justify-content:space-between;padding:0.5rem;background:var(--secondary);border-radius:6px;">
+                                    <span style="font-size:0.75rem;color:var(--foreground);">${model.replace('pplx-', '')}</span>
+                                    <span style="font-size:0.75rem;font-weight:600;color:var(--purple);">${count}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (accounts.length === 0) {
+                document.getElementById('pplx-accounts').innerHTML = statsHtml + '<div style="padding:1rem;color:var(--muted-foreground);">No Perplexity accounts. Click "Add Account" above.</div>';
+                return;
+            }
+            document.getElementById('pplx-accounts').innerHTML = statsHtml + accounts.map(a => `
+                <div class="account-card" style="cursor:default;">
+                    <div class="account-header">
+                        <div class="account-info">
+                            <div class="account-avatar perplexity">${(a.email || 'P')[0].toUpperCase()}</div>
+                            <div><div class="account-email">${a.email || 'Perplexity User'}</div><div class="account-type">Perplexity Pro</div></div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:0.5rem;">
+                            <span class="badge ${a.isRateLimited ? 'badge-warning' : 'badge-success'}">${a.isRateLimited ? 'Limited' : 'Active'}</span>
+                            <button class="btn-delete" onclick="renamePerplexityAccount('${a.email}')" title="Rename account" style="background:none;color:var(--muted-foreground);">✏️</button>
+                            <button class="btn-delete" onclick="confirmDeleteAccount('${a.email}','perplexity')" title="Remove account">✕</button>
+                        </div>
+                    </div>
+                    <div class="account-body" style="font-size:0.75rem;color:var(--muted-foreground);">
+                        Uses: ${a.usageCount || 0} • Token: ${a.hasToken ? '✓' : '✗'}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function startPerplexityLogin() {
+            const btn = document.getElementById('pplx-btn') || document.getElementById('pplx-add-btn');
+            const orig = btn.innerHTML;
+            btn.innerHTML = '⏳ Opening...';
+            btn.disabled = true;
+            try {
+                const res = await fetch('/perplexity-login', { method: 'POST' });
+                if (res.status === 409) { showToast('Login in progress', true); btn.innerHTML = orig; btn.disabled = false; return; }
+                if (res.ok) { showToast('Browser opened! Login to Perplexity.'); btn.innerHTML = '⏳ Waiting...'; pollLogin(orig); }
+                else { showToast('Failed', true); btn.innerHTML = orig; btn.disabled = false; }
+            } catch (e) { showToast('Error', true); btn.innerHTML = orig; btn.disabled = false; }
+        }
+
+        async function pollLogin(orig) {
+            const btn = document.getElementById('pplx-btn') || document.getElementById('pplx-add-btn');
+            let prev = cachedData.pplx?.count || 0;
+            let attempts = 0;
+            const check = async () => {
+                attempts++;
+                try {
+                    const res = await fetch('/perplexity-login/status');
+                    const data = await res.json();
+                    if (!data.inProgress) {
+                        btn.innerHTML = orig; btn.disabled = false;
+                        if (data.accounts > prev) { showToast('✓ Account added!'); fetchAllData(); }
+                        return;
+                    }
+                    if (attempts < 300) setTimeout(check, 1000);
+                    else { btn.innerHTML = orig; btn.disabled = false; }
+                } catch (e) { btn.innerHTML = orig; btn.disabled = false; }
+            };
+            check();
+        }
+
+        async function addPplxAccount(e) {
+            e.preventDefault();
+            const email = document.getElementById('pplx-email').value || `pplx_${Date.now()}@user.local`;
+            const token = document.getElementById('pplx-token').value;
+            try {
+                const res = await fetch('/perplexity-sessions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, sessionToken: token })
+                });
+                if (res.ok) { showToast('✓ Added!'); closeModal('perplexity-modal'); document.getElementById('pplx-form').reset(); fetchAllData(); }
+                else { const d = await res.json(); showToast(d.error || 'Failed', true); }
+            } catch (e) { showToast('Error', true); }
+            return false;
+        }
+
+        fetchAllData();
+        setInterval(fetchAllData, 30000);
     </script>
 </body>
 

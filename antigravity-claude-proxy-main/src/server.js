@@ -9,44 +9,68 @@ import cors from 'cors';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { sendMessage, sendMessageStream, listModels, getModelQuotas } from './cloudcode-client.js';
+import { PerplexityClient } from './perplexity-client.js';
+import { PerplexityAccountManager } from './perplexity-account-manager.js';
+import { PerplexitySessionClient } from './perplexity-session-client.js';
+import { PerplexitySessionAccountManager } from './perplexity-session-account-manager.js';
+import { getLoginService } from './perplexity-browser-login.js';
+import { getPerplexityBrowserClient } from './perplexity-browser-client.js';
 import { forceRefresh } from './token-extractor.js';
 import { REQUEST_BODY_LIMIT } from './constants.js';
 import { AccountManager } from './account-manager.js';
 import { formatDuration } from './utils/helpers.js';
 
 const app = express();
-
-// Initialize account manager (will be fully initialized on first request or startup)
 const accountManager = new AccountManager();
-
-// Track initialization status
+const perplexityAccountManager = new PerplexityAccountManager();
+const perplexityClient = new PerplexityClient(perplexityAccountManager);
+// Perplexity Session-based client (uses subscription instead of API keys)
+const perplexitySessionManager = new PerplexitySessionAccountManager();
+const perplexitySessionClient = new PerplexitySessionClient(perplexitySessionManager);
 let isInitialized = false;
-let initError = null;
 let initPromise = null;
 
-/**
- * Ensure account manager is initialized (with race condition protection)
- */
+// Per-model usage tracking (in-memory, resets on server restart)
+const modelUsageTracker = {
+    google: {},      // { modelId: count }
+    perplexity: {},  // { modelId: count }
+    lastReset: new Date().toISOString()
+};
+
+function trackModelUsage(provider, modelId) {
+    const tracker = provider === 'perplexity' ? modelUsageTracker.perplexity : modelUsageTracker.google;
+    tracker[modelId] = (tracker[modelId] || 0) + 1;
+}
+
+function getModelUsageStats() {
+    return {
+        google: { ...modelUsageTracker.google },
+        perplexity: { ...modelUsageTracker.perplexity },
+        lastReset: modelUsageTracker.lastReset,
+        totalGoogle: Object.values(modelUsageTracker.google).reduce((a, b) => a + b, 0),
+        totalPerplexity: Object.values(modelUsageTracker.perplexity).reduce((a, b) => a + b, 0)
+    };
+}
+
 async function ensureInitialized() {
     if (isInitialized) return;
-
-    // If initialization is already in progress, wait for it
     if (initPromise) return initPromise;
-
     initPromise = (async () => {
         try {
             await accountManager.initialize();
+            await perplexityAccountManager.initialize();
+            await perplexitySessionManager.initialize();
             isInitialized = true;
-            const status = accountManager.getStatus();
-            console.log(`[Server] Account pool initialized: ${status.summary}`);
+            console.log(`[Server] Account pool initialized: ${accountManager.getStatus().summary}`);
+            if (perplexitySessionManager.hasAccounts()) {
+                console.log(`[Server] Perplexity session accounts loaded: ${perplexitySessionManager.getAccounts().length}`);
+            }
         } catch (error) {
-            initError = error;
-            initPromise = null; // Allow retry on failure
-            console.error('[Server] Failed to initialize account manager:', error.message);
+            initPromise = null;
+            console.error('[Server] Init failed:', error);
             throw error;
         }
     })();
-
     return initPromise;
 }
 
@@ -61,6 +85,146 @@ app.use(express.static(join(__dirname, 'public')));
 // Dashboard redirect
 app.get('/dashboard', (req, res) => {
     res.sendFile(join(__dirname, 'public', 'dashboard.html'));
+});
+
+// Restart endpoint - restarts the proxy server
+app.post('/restart', (req, res) => {
+    console.log('[Server] Restart requested via dashboard');
+    res.json({ status: 'restarting', message: 'Proxy will restart in 2 seconds...' });
+
+    // Graceful restart after response is sent
+    setTimeout(() => {
+        console.log('[Server] Restarting...');
+        process.exit(0); // Exit cleanly - the startup script (VBS) or npm will restart
+    }, 2000);
+});
+
+// Perplexity Session Account Management
+app.get('/perplexity-sessions', async (req, res) => {
+    try {
+        await ensureInitialized();
+        const accounts = perplexitySessionManager.getAccounts();
+        res.json({ accounts, count: accounts.length });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/perplexity-sessions', async (req, res) => {
+    try {
+        await ensureInitialized();
+        const { email, sessionToken } = req.body;
+
+        if (!email || !sessionToken) {
+            return res.status(400).json({ error: 'email and sessionToken are required' });
+        }
+
+        await perplexitySessionManager.addAccount(email, sessionToken);
+        res.json({ success: true, message: `Account ${email} added successfully` });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/perplexity-sessions/:email', async (req, res) => {
+    try {
+        await ensureInitialized();
+        const removed = await perplexitySessionManager.removeAccount(req.params.email);
+        if (removed) {
+            res.json({ success: true, message: `Account ${req.params.email} removed` });
+        } else {
+            res.status(404).json({ error: 'Account not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Rename a Perplexity session account
+app.patch('/perplexity-sessions/:email', async (req, res) => {
+    try {
+        await ensureInitialized();
+        const { newName } = req.body;
+        if (!newName) {
+            return res.status(400).json({ error: 'newName is required' });
+        }
+        const renamed = await perplexitySessionManager.renameAccount(req.params.email, newName);
+        if (renamed) {
+            res.json({ success: true, message: `Account renamed to ${newName}` });
+        } else {
+            res.status(404).json({ error: 'Account not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Browser-based login for Perplexity - opens dedicated browser with stealth mode
+app.post('/perplexity-login', async (req, res) => {
+    try {
+        await ensureInitialized();
+        const loginService = getLoginService(perplexitySessionManager);
+
+        if (loginService.isActive()) {
+            return res.status(409).json({
+                error: 'Login already in progress',
+                message: 'Please complete the login in the browser window that opened'
+            });
+        }
+
+        // Respond immediately that browser is opening
+        res.json({
+            status: 'started',
+            message: 'Browser window opened. Please login to Perplexity - your session will be captured automatically.'
+        });
+
+        // Start login in background
+        loginService.startLogin().then(result => {
+            if (result.success) {
+                console.log(`[Server] Perplexity login successful: ${result.email}`);
+            } else {
+                console.log(`[Server] Perplexity login: ${result.error}`);
+            }
+        }).catch(err => {
+            console.error('[Server] Perplexity login error:', err.message);
+        });
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Check login status
+app.get('/perplexity-login/status', async (req, res) => {
+    await ensureInitialized();
+    const loginService = getLoginService(perplexitySessionManager);
+    res.json({
+        inProgress: loginService.isActive(),
+        accounts: perplexitySessionManager.getAccounts().length
+    });
+});
+
+/**
+ * Model usage statistics endpoint
+ * Returns per-model request counts for both Google and Perplexity
+ */
+app.get('/model-usage', (req, res) => {
+    res.json(getModelUsageStats());
+});
+
+// Perplexity stats from Python server
+app.get('/perplexity-stats', async (req, res) => {
+    try {
+        const pythonStats = await fetch('http://localhost:8000/stats');
+        if (pythonStats.ok) {
+            const stats = await pythonStats.json();
+            res.json(stats);
+        } else {
+            res.json({ error: 'Python server not available', requests_today: 0 });
+        }
+    } catch (e) {
+        res.json({ error: 'Python server not running', requests_today: 0 });
+    }
 });
 
 /**
@@ -303,31 +467,33 @@ app.get('/account-limits', async (req, res) => {
         }
 
         // Default: JSON format
-        res.json({
+        const perplexityAccounts = perplexityAccountManager.getAccounts().map(acc => ({
+            apiKey: '...' + acc.apiKey.slice(-5),
+            addedAt: acc.addedAt,
+            lastUsed: acc.lastUsed,
+            isRateLimited: acc.isRateLimited,
+            status: acc.isRateLimited ? 'rate-limited' : 'ok',
+            usageCount: acc.usageCount || 0
+        }));
+
+        const responsePayload = {
             timestamp: new Date().toLocaleString(),
             totalAccounts: allAccounts.length,
+            perplexityAccounts: perplexityAccounts,
             models: sortedModels,
-            accounts: accountLimits.map(acc => ({
-                email: acc.email,
-                status: acc.status,
-                error: acc.error || null,
-                limits: Object.fromEntries(
-                    sortedModels.map(modelId => {
-                        const quota = acc.models?.[modelId];
-                        if (!quota) {
-                            return [modelId, null];
-                        }
-                        return [modelId, {
-                            remaining: quota.remainingFraction !== null
-                                ? `${Math.round(quota.remainingFraction * 100)}%`
-                                : 'N/A',
-                            remainingFraction: quota.remainingFraction,
-                            resetTime: quota.resetTime || null
-                        }];
-                    })
-                )
-            }))
-        });
+            accounts: accountLimits.map(acc => {
+                const originalAcc = allAccounts.find(a => a.email === acc.email);
+                return {
+                    email: acc.email,
+                    status: acc.status,
+                    error: acc.error || null,
+                    lastUsed: originalAcc?.lastUsed || null,
+                    limits: acc.models
+                };
+            })
+        };
+
+        res.json(responsePayload);
     } catch (error) {
         res.status(500).json({
             status: 'error',
@@ -362,23 +528,48 @@ app.post('/refresh-token', async (req, res) => {
 
 /**
  * List models endpoint (OpenAI-compatible format)
+ * Includes Perplexity models when Perplexity accounts are configured
  */
 app.get('/v1/models', async (req, res) => {
     try {
         await ensureInitialized();
+
+        let allModels = { data: [] };
+
+        // Get Google Cloud Code models if available
         const account = accountManager.pickNext();
-        if (!account) {
+        if (account) {
+            const token = await accountManager.getTokenForAccount(account);
+            const googleModels = await listModels(token);
+            if (googleModels && googleModels.data) {
+                allModels.data.push(...googleModels.data);
+            }
+        }
+
+        // Add Perplexity models if Perplexity accounts are configured
+        if (perplexitySessionManager.hasAccounts()) {
+            const pplxModels = await perplexitySessionClient.listModels();
+            const pplxModelData = pplxModels.map(m => ({
+                id: m.id,
+                object: 'model',
+                created: Date.now(),
+                owned_by: 'perplexity',
+                description: m.description
+            }));
+            allModels.data.push(...pplxModelData);
+        }
+
+        if (allModels.data.length === 0) {
             return res.status(503).json({
                 type: 'error',
                 error: {
                     type: 'api_error',
-                    message: 'No accounts available'
+                    message: 'No accounts available. Add Google AI or Perplexity accounts via dashboard.'
                 }
             });
         }
-        const token = await accountManager.getTokenForAccount(account);
-        const models = await listModels(token);
-        res.json(models);
+
+        res.json(allModels);
     } catch (error) {
         console.error('[API] Error listing models:', error);
         res.status(500).json({
@@ -472,7 +663,149 @@ app.post('/v1/messages', async (req, res) => {
             });
         }
 
-        if (stream) {
+        // Route to Perplexity if model is sonar, perplexity, or pplx- prefixed
+        const modelLower = request.model.toLowerCase();
+        const isPerplexityModel = modelLower.includes('sonar') ||
+            modelLower.includes('perplexity') ||
+            modelLower.startsWith('pplx-');
+
+        if (isPerplexityModel) {
+            console.log('[API] Routing to Perplexity via Python Server (curl_cffi)');
+            try {
+                // Forward to Python server running on port 8000
+                // The Python server uses curl_cffi for TLS fingerprint impersonation
+                const pythonServerUrl = 'http://localhost:8000/v1/chat/completions';
+
+                // Convert Anthropic format to OpenAI format for Python server
+                const openaiPayload = {
+                    model: request.model,
+                    messages: messages.map(m => ({
+                        role: m.role,
+                        content: typeof m.content === 'string' ? m.content :
+                            m.content.filter(c => c.type === 'text').map(c => c.text).join('\n')
+                    })),
+                    stream: stream  // Use the stream flag from request
+                };
+
+                if (system) {
+                    openaiPayload.messages.unshift({ role: 'system', content: system });
+                }
+
+                console.log(`[API] Forwarding to Python server: ${pythonServerUrl} (stream: ${stream})`);
+                const pythonResponse = await fetch(pythonServerUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(openaiPayload)
+                });
+
+                if (!pythonResponse.ok) {
+                    const errorText = await pythonResponse.text();
+                    throw new Error(`Python server error: ${pythonResponse.status} - ${errorText}`);
+                }
+
+                if (stream) {
+                    // Handle streaming response - convert OpenAI SSE to Anthropic SSE
+                    res.setHeader('Content-Type', 'text/event-stream');
+                    res.setHeader('Cache-Control', 'no-cache');
+                    res.setHeader('Connection', 'keep-alive');
+                    res.setHeader('X-Accel-Buffering', 'no');
+                    res.flushHeaders();
+
+                    const msgId = `msg_pplx_${Date.now()}`;
+                    let fullText = '';
+
+                    // Send message_start
+                    const startEvent = {
+                        type: 'message_start',
+                        message: {
+                            id: msgId,
+                            type: 'message',
+                            role: 'assistant',
+                            content: [],
+                            model: request.model,
+                            stop_reason: null,
+                            stop_sequence: null,
+                            usage: { input_tokens: 0, output_tokens: 0 }
+                        }
+                    };
+                    res.write(`event: message_start\ndata: ${JSON.stringify(startEvent)}\n\n`);
+
+                    // Send content_block_start
+                    res.write(`event: content_block_start\ndata: ${JSON.stringify({ type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } })}\n\n`);
+
+                    // Process SSE stream from Python server
+                    const reader = pythonResponse.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = '';
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop() || '';
+
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                const data = line.slice(6);
+                                if (data === '[DONE]') continue;
+                                try {
+                                    const chunk = JSON.parse(data);
+                                    const delta = chunk.choices?.[0]?.delta?.content || '';
+                                    if (delta) {
+                                        fullText += delta;
+                                        const textDelta = { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: delta } };
+                                        res.write(`event: content_block_delta\ndata: ${JSON.stringify(textDelta)}\n\n`);
+                                    }
+                                } catch (e) { /* ignore parse errors */ }
+                            }
+                        }
+                    }
+
+                    // Send content_block_stop
+                    res.write(`event: content_block_stop\ndata: ${JSON.stringify({ type: 'content_block_stop', index: 0 })}\n\n`);
+
+                    // Send message_delta with stop_reason
+                    res.write(`event: message_delta\ndata: ${JSON.stringify({ type: 'message_delta', delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { output_tokens: fullText.length } })}\n\n`);
+
+                    // Send message_stop
+                    res.write(`event: message_stop\ndata: ${JSON.stringify({ type: 'message_stop' })}\n\n`);
+
+                    trackModelUsage('perplexity', request.model);
+                    res.end();
+                } else {
+                    // Non-streaming response
+                    const openaiResult = await pythonResponse.json();
+
+                    // Convert OpenAI response back to Anthropic format
+                    const anthropicResponse = {
+                        id: openaiResult.id || `msg_pplx_${Date.now()}`,
+                        type: 'message',
+                        role: 'assistant',
+                        content: [{
+                            type: 'text',
+                            text: openaiResult.choices?.[0]?.message?.content || 'No response from Perplexity'
+                        }],
+                        model: request.model,
+                        stop_reason: 'end_turn',
+                        stop_sequence: null,
+                        usage: openaiResult.usage || { input_tokens: 0, output_tokens: 0 }
+                    };
+
+                    // Track usage
+                    trackModelUsage('perplexity', request.model);
+                    res.json(anthropicResponse);
+                }
+            } catch (err) {
+                console.error('[API] Perplexity Error:', err);
+                const { errorType, errorMessage } = parseError(err);
+                res.status(500).json({
+                    type: 'error',
+                    error: { type: errorType, message: errorMessage }
+                });
+            }
+        } else if (stream) {
             // Handle streaming response
             res.setHeader('Content-Type', 'text/event-stream');
             res.setHeader('Cache-Control', 'no-cache');
@@ -489,6 +822,8 @@ app.post('/v1/messages', async (req, res) => {
                     // Flush after each event for real-time streaming
                     if (res.flush) res.flush();
                 }
+                // Track usage for streaming
+                trackModelUsage('google', request.model);
                 res.end();
 
             } catch (streamError) {
@@ -506,6 +841,8 @@ app.post('/v1/messages', async (req, res) => {
         } else {
             // Handle non-streaming response
             const response = await sendMessage(request, accountManager);
+            // Track usage for non-streaming
+            trackModelUsage('google', request.model);
             res.json(response);
         }
 

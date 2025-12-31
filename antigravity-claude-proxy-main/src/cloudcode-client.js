@@ -15,7 +15,10 @@ import {
     ANTIGRAVITY_HEADERS,
     MAX_RETRIES,
     MAX_WAIT_BEFORE_ERROR_MS,
+    AUTO_WAIT_FOR_RATE_LIMIT,
+    MAX_RATE_LIMIT_WAIT_MS,
     MIN_SIGNATURE_LENGTH,
+    REQUEST_TIMEOUT_MS,
     getModelFamily,
     isThinkingModel
 } from './constants.js';
@@ -24,23 +27,30 @@ import {
     convertGoogleToAnthropic
 } from './format/index.js';
 import { cacheSignature } from './format/signature-cache.js';
-import { formatDuration, sleep } from './utils/helpers.js';
+import { formatDuration, sleep, waitWithProgress } from './utils/helpers.js';
 import { isRateLimitError, isAuthError } from './errors.js';
 
 /**
- * Check if an error is a rate limit error (429 or RESOURCE_EXHAUSTED)
- * @deprecated Use isRateLimitError from errors.js instead
+ * Create an AbortController with timeout
+ * @param {number} timeoutMs - Timeout in milliseconds
+ * @returns {{controller: AbortController, timeoutId: NodeJS.Timeout}} Controller and timeout ID
  */
-function is429Error(error) {
-    return isRateLimitError(error);
+function createTimeoutController(timeoutMs = REQUEST_TIMEOUT_MS) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+        controller.abort(new Error(`Request timeout after ${timeoutMs}ms`));
+    }, timeoutMs);
+    return { controller, timeoutId };
 }
 
 /**
- * Check if an error is an auth-invalid error (credentials need re-authentication)
- * @deprecated Use isAuthError from errors.js instead
+ * Clear timeout and return result
+ * @param {NodeJS.Timeout} timeoutId - Timeout ID to clear
  */
-function isAuthInvalidError(error) {
-    return isAuthError(error);
+function clearRequestTimeout(timeoutId) {
+    if (timeoutId) {
+        clearTimeout(timeoutId);
+    }
 }
 
 /**
@@ -216,11 +226,13 @@ function parseResetTime(responseOrError, errorText = '') {
     return resetMs;
 }
 
+
 /**
  * Build the wrapped request body for Cloud Code API
  */
 function buildCloudCodeRequest(anthropicRequest, projectId) {
     const model = anthropicRequest.model;
+
     const googleRequest = convertAnthropicToGoogle(anthropicRequest);
 
     // Use stable session ID derived from first user message for cache continuity
@@ -300,19 +312,31 @@ export async function sendMessage(anthropicRequest, accountManager) {
         if (!account) {
             if (accountManager.isAllRateLimited()) {
                 const allWaitMs = accountManager.getMinWaitTimeMs();
-                const resetTime = new Date(Date.now() + allWaitMs).toISOString();
+                const resetTime = new Date(Date.now() + allWaitMs);
 
-                // If wait time is too long (> 2 minutes), throw error immediately
-                if (allWaitMs > MAX_WAIT_BEFORE_ERROR_MS) {
+                // Check if we should auto-wait or throw error
+                const shouldAutoWait = AUTO_WAIT_FOR_RATE_LIMIT &&
+                    (MAX_RATE_LIMIT_WAIT_MS === 0 || allWaitMs <= MAX_RATE_LIMIT_WAIT_MS);
+
+                // If auto-wait is disabled or wait exceeds max, check legacy threshold
+                if (!shouldAutoWait && allWaitMs > MAX_WAIT_BEFORE_ERROR_MS) {
                     throw new Error(
-                        `RESOURCE_EXHAUSTED: Rate limited. Quota will reset after ${formatDuration(allWaitMs)}. Next available: ${resetTime}`
+                        `RESOURCE_EXHAUSTED: Rate limited. Quota will reset after ${formatDuration(allWaitMs)}. Next available: ${resetTime.toISOString()}`
                     );
                 }
 
-                // Wait for reset (applies to both single and multi-account modes)
+                // Auto-wait mode: Wait for rate limit reset with progress feedback
                 const accountCount = accountManager.getAccountCount();
-                console.log(`[CloudCode] All ${accountCount} account(s) rate-limited. Waiting ${formatDuration(allWaitMs)}...`);
-                await sleep(allWaitMs);
+                const context = `All ${accountCount} account(s) rate-limited`;
+
+                if (allWaitMs > MAX_WAIT_BEFORE_ERROR_MS) {
+                    // Long wait - use progress feedback
+                    await waitWithProgress(allWaitMs, context, resetTime);
+                } else {
+                    // Short wait - simple sleep
+                    console.log(`[CloudCode] ${context}. Waiting ${formatDuration(allWaitMs)}...`);
+                    await sleep(allWaitMs);
+                }
                 accountManager.clearExpiredLimits();
                 account = accountManager.pickNext();
             }
@@ -323,10 +347,16 @@ export async function sendMessage(anthropicRequest, accountManager) {
         }
 
         try {
+            console.log(`[CloudCode Debug] Account Selected: ${account.email}`);
+
             // Get token and project for this account
             const token = await accountManager.getTokenForAccount(account);
             const project = await accountManager.getProjectForAccount(account, token);
             const payload = buildCloudCodeRequest(anthropicRequest, project);
+
+            console.log(`[CloudCode Debug] Project ID: ${project}`);
+            console.log(`[CloudCode Debug] Mapped Model: ${payload.model}`);
+            console.log(`[CloudCode Debug] Original Model: ${anthropicRequest.model}`);
 
             console.log(`[CloudCode] Sending request for model: ${model}`);
 
@@ -338,11 +368,18 @@ export async function sendMessage(anthropicRequest, accountManager) {
                         ? `${endpoint}/v1internal:streamGenerateContent?alt=sse`
                         : `${endpoint}/v1internal:generateContent`;
 
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: buildHeaders(token, model, isThinking ? 'text/event-stream' : 'application/json'),
-                        body: JSON.stringify(payload)
-                    });
+                    const { controller, timeoutId } = createTimeoutController();
+                    let response;
+                    try {
+                        response = await fetch(url, {
+                            method: 'POST',
+                            headers: buildHeaders(token, model, isThinking ? 'text/event-stream' : 'application/json'),
+                            body: JSON.stringify(payload),
+                            signal: controller.signal
+                        });
+                    } finally {
+                        clearRequestTimeout(timeoutId);
+                    }
 
                     if (!response.ok) {
                         const errorText = await response.text();
@@ -384,7 +421,7 @@ export async function sendMessage(anthropicRequest, accountManager) {
                     return convertGoogleToAnthropic(data, anthropicRequest.model);
 
                 } catch (endpointError) {
-                    if (is429Error(endpointError)) {
+                    if (isRateLimitError(endpointError)) {
                         throw endpointError; // Re-throw to trigger account switch
                     }
                     console.log(`[CloudCode] Error at ${endpoint}:`, endpointError.message);
@@ -404,12 +441,12 @@ export async function sendMessage(anthropicRequest, accountManager) {
             }
 
         } catch (error) {
-            if (is429Error(error)) {
+            if (isRateLimitError(error)) {
                 // Rate limited - already marked, continue to next account
                 console.log(`[CloudCode] Account ${account.email} rate-limited, trying next...`);
                 continue;
             }
-            if (isAuthInvalidError(error)) {
+            if (isAuthError(error)) {
                 // Auth invalid - already marked, continue to next account
                 console.log(`[CloudCode] Account ${account.email} has invalid credentials, trying next...`);
                 continue;
@@ -502,8 +539,8 @@ async function parseThinkingSSEResponse(response, originalModel) {
                     }
                 }
             } catch (e) {
-                    console.log('[CloudCode] SSE parse warning:', e.message, 'Raw:', jsonText.slice(0, 100));
-                }
+                console.log('[CloudCode] SSE parse warning:', e.message, 'Raw:', jsonText.slice(0, 100));
+            }
         }
     }
 
@@ -563,19 +600,31 @@ export async function* sendMessageStream(anthropicRequest, accountManager) {
         if (!account) {
             if (accountManager.isAllRateLimited()) {
                 const allWaitMs = accountManager.getMinWaitTimeMs();
-                const resetTime = new Date(Date.now() + allWaitMs).toISOString();
+                const resetTime = new Date(Date.now() + allWaitMs);
 
-                // If wait time is too long (> 2 minutes), throw error immediately
-                if (allWaitMs > MAX_WAIT_BEFORE_ERROR_MS) {
+                // Check if we should auto-wait or throw error
+                const shouldAutoWait = AUTO_WAIT_FOR_RATE_LIMIT &&
+                    (MAX_RATE_LIMIT_WAIT_MS === 0 || allWaitMs <= MAX_RATE_LIMIT_WAIT_MS);
+
+                // If auto-wait is disabled or wait exceeds max, check legacy threshold
+                if (!shouldAutoWait && allWaitMs > MAX_WAIT_BEFORE_ERROR_MS) {
                     throw new Error(
-                        `RESOURCE_EXHAUSTED: Rate limited. Quota will reset after ${formatDuration(allWaitMs)}. Next available: ${resetTime}`
+                        `RESOURCE_EXHAUSTED: Rate limited. Quota will reset after ${formatDuration(allWaitMs)}. Next available: ${resetTime.toISOString()}`
                     );
                 }
 
-                // Wait for reset (applies to both single and multi-account modes)
+                // Auto-wait mode: Wait for rate limit reset with progress feedback
                 const accountCount = accountManager.getAccountCount();
-                console.log(`[CloudCode] All ${accountCount} account(s) rate-limited. Waiting ${formatDuration(allWaitMs)}...`);
-                await sleep(allWaitMs);
+                const context = `All ${accountCount} account(s) rate-limited`;
+
+                if (allWaitMs > MAX_WAIT_BEFORE_ERROR_MS) {
+                    // Long wait - use progress feedback
+                    await waitWithProgress(allWaitMs, context, resetTime);
+                } else {
+                    // Short wait - simple sleep
+                    console.log(`[CloudCode] ${context}. Waiting ${formatDuration(allWaitMs)}...`);
+                    await sleep(allWaitMs);
+                }
                 accountManager.clearExpiredLimits();
                 account = accountManager.pickNext();
             }
@@ -599,11 +648,22 @@ export async function* sendMessageStream(anthropicRequest, accountManager) {
                 try {
                     const url = `${endpoint}/v1internal:streamGenerateContent?alt=sse`;
 
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: buildHeaders(token, model, 'text/event-stream'),
-                        body: JSON.stringify(payload)
-                    });
+                    // Use longer timeout for streaming requests
+                    const streamTimeoutMs = REQUEST_TIMEOUT_MS * 5; // 5x normal timeout for streaming
+                    const { controller, timeoutId } = createTimeoutController(streamTimeoutMs);
+                    let response;
+                    try {
+                        response = await fetch(url, {
+                            method: 'POST',
+                            headers: buildHeaders(token, model, 'text/event-stream'),
+                            body: JSON.stringify(payload),
+                            signal: controller.signal
+                        });
+                    } catch (fetchError) {
+                        clearRequestTimeout(timeoutId);
+                        throw fetchError;
+                    }
+                    // Don't clear timeout yet for streaming - we'll let it run during stream processing
 
                     if (!response.ok) {
                         const errorText = await response.text();
@@ -632,13 +692,17 @@ export async function* sendMessageStream(anthropicRequest, accountManager) {
                     }
 
                     // Stream the response - yield events as they arrive
-                    yield* streamSSEResponse(response, anthropicRequest.model);
+                    try {
+                        yield* streamSSEResponse(response, anthropicRequest.model);
+                    } finally {
+                        clearRequestTimeout(timeoutId);
+                    }
 
                     console.log('[CloudCode] Stream completed');
                     return;
 
                 } catch (endpointError) {
-                    if (is429Error(endpointError)) {
+                    if (isRateLimitError(endpointError)) {
                         throw endpointError; // Re-throw to trigger account switch
                     }
                     console.log(`[CloudCode] Stream error at ${endpoint}:`, endpointError.message);
@@ -658,12 +722,12 @@ export async function* sendMessageStream(anthropicRequest, accountManager) {
             }
 
         } catch (error) {
-            if (is429Error(error)) {
+            if (isRateLimitError(error)) {
                 // Rate limited - already marked, continue to next account
                 console.log(`[CloudCode] Account ${account.email} rate-limited, trying next...`);
                 continue;
             }
-            if (isAuthInvalidError(error)) {
+            if (isAuthError(error)) {
                 // Auth invalid - already marked, continue to next account
                 console.log(`[CloudCode] Account ${account.email} has invalid credentials, trying next...`);
                 continue;
@@ -948,7 +1012,7 @@ async function* streamSSEResponse(response, originalModel) {
 
 /**
  * List available models in Anthropic API format
- * Fetches models dynamically from the Cloud Code API
+ * Fetches models dynamically from the Cloud Code API and adds virtual aliases
  *
  * @param {string} token - OAuth access token
  * @returns {Promise<{object: string, data: Array<{id: string, object: string, created: number, owned_by: string, description: string}>}>} List of available models
@@ -990,11 +1054,18 @@ export async function fetchAvailableModels(token) {
     for (const endpoint of ANTIGRAVITY_ENDPOINT_FALLBACKS) {
         try {
             const url = `${endpoint}/v1internal:fetchAvailableModels`;
-            const response = await fetch(url, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify({})
-            });
+            const { controller, timeoutId } = createTimeoutController();
+            let response;
+            try {
+                response = await fetch(url, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({}),
+                    signal: controller.signal
+                });
+            } finally {
+                clearRequestTimeout(timeoutId);
+            }
 
             if (!response.ok) {
                 const errorText = await response.text();
