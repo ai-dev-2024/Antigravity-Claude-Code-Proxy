@@ -1,0 +1,39 @@
+{
+    "name": "antigravity-model-sync",
+    "displayName": "Antigravity Model Sync",
+    "description": "Real-time model synchronization between Antigravity Proxy dashboard and Claude Code extension",
+    "version": "1.0.0",
+    "publisher": "antigravity",
+    "engines": {
+        "vscode": "^1.80.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "activationEvents": [
+        "onStartupFinished"
+    ],
+    "main": "./extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "antigravity.showCurrentModel",
+                "title": "Antigravity: Show Current Model"
+            },
+            {
+                "command": "antigravity.refreshModel",
+                "title": "Antigravity: Refresh Model from Proxy"
+            }
+        ]
+    },
+    "scripts": {
+        "package": "vsce package"
+    },
+    "devDependencies": {
+        "@types/vscode": "^1.80.0"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "type": "commonjs"
+}

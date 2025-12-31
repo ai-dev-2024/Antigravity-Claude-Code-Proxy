@@ -878,6 +878,9 @@ app.post('/v1/messages', async (req, res) => {
             temperature
         } = req.body;
 
+        // DEBUG: Log that we received a message request
+        console.log(`[DEBUG] POST /v1/messages received - model: ${model}, messages: ${messages?.length} msgs`);
+
         // Validate required fields
         if (!messages || !Array.isArray(messages)) {
             return res.status(400).json({
