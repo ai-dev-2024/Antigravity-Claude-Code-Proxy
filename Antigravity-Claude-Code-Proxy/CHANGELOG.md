@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.0] - 2026-01-01
+
+### Added
+- **Per-Window Model Selection**: Each Antigravity window can now use different models independently
+  - Extension stores model per-window using VS Code workspaceState
+  - Server supports `X-Override-Model` header for per-request model override
+  - Status bar shows "This Window:" tooltip indicating window-local model
+- **Account Reset Countdown**: Dashboard now shows Claude quota reset time on each account card
+  - Dynamic sorting: accounts with soonest reset time appear first
+  - Visual countdown tip: `⏱ 2h 30m Claude reset`
+- **Dark Theme Dashboard**: Modern OpenAI/Apple-inspired dark theme
+  - Inter font family
+  - Subtle borders and hover states
+  - Refined color palette with accent green (#10a37f)
+
+### Changed
+- Model dropdown reordered: Claude → Gemini 3 → Gemini 2.5 → GPT → Other
+- Usage page model groups follow same order
+- Health check polling now every 5 seconds (was 2 seconds)
+- Extension no longer overrides window model on proxy poll
+
 ## [4.0.2] - 2026-01-01
 
 ### Added
