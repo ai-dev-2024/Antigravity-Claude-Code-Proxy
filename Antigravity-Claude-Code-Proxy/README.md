@@ -267,3 +267,11 @@ MIT License - See [LICENSE](LICENSE) for details.
   <a href="https://github.com/ai-dev-2024/Antigravity-Claude-Code-Proxy/issues">Report Bug</a> •
   <a href="https://github.com/ai-dev-2024/Antigravity-Claude-Code-Proxy/issues">Request Feature</a>
 </p>
+
+<br>
+
+<p align="center">
+  <a href="https://ko-fi.com/ai_dev_2024">
+    <img src="https://storage.ko-fi.com/cdn/kofi2.png?v=3" alt="Buy Me A Coffee" height="50">
+  </a>
+</p>
