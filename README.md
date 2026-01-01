@@ -100,8 +100,8 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/ai-dev-2024/Claude-Cli-GoogleAiPro.git
-cd Claude-Cli-GoogleAiPro/antigravity-claude-proxy-main
+git clone https://github.com/ai-dev-2024/Antigravity-Claude-Code-Proxy.git
+cd Antigravity-Claude-Code-Proxy/Antigravity-Claude-Code-Proxy
 
 # Install dependencies
 npm install
@@ -215,7 +215,7 @@ The status bar extension shows your current model in real-time:
 ## 📁 Project Structure
 
 ```
-antigravity-claude-proxy-main/
+Antigravity-Claude-Code-Proxy/
 ├── src/
 │   ├── server.js          # Main Express server
 │   ├── account-manager.js # Multi-account handling
@@ -264,6 +264,6 @@ MIT License - See [LICENSE](LICENSE) for details.
 <p align="center">
   <strong>Made with ❤️ for the Claude Code community</strong>
   <br>
-  <a href="https://github.com/ai-dev-2024/Claude-Cli-GoogleAiPro/issues">Report Bug</a> •
-  <a href="https://github.com/ai-dev-2024/Claude-Cli-GoogleAiPro/issues">Request Feature</a>
+  <a href="https://github.com/ai-dev-2024/Antigravity-Claude-Code-Proxy/issues">Report Bug</a> •
+  <a href="https://github.com/ai-dev-2024/Antigravity-Claude-Code-Proxy/issues">Request Feature</a>
 </p>
