@@ -76,8 +76,8 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/ai-dev-2024/Claude-Cli-GoogleAiPro.git
-cd Claude-Cli-GoogleAiPro/antigravity-claude-proxy-main
+git clone https://github.com/ai-dev-2024/Antigravity-Claude-Code-Proxy.git
+cd Antigravity-Claude-Code-Proxy/Antigravity-Claude-Code-Proxy
 
 # Install dependencies
 npm install
@@ -267,8 +267,8 @@ Open http://localhost:8080/dashboard and use the model dropdown in the header.
 ## 📁 Project Structure
 
 ```
-Claude-Cli-GoogleAiPro/
-├── antigravity-claude-proxy-main/
+Antigravity-Claude-Code-Proxy/
+├── Antigravity-Claude-Code-Proxy/
 │   ├── src/
 │   │   ├── server.js              # Main Express server
 │   │   ├── account-manager.js     # Google account handling
