@@ -3,12 +3,18 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Proxy-v3.9.2-blue?style=for-the-badge" alt="Proxy v3.9.2">
-  <img src="https://img.shields.io/badge/Extension-v3.9.2-purple?style=for-the-badge" alt="Extension v3.9.2">
+  <a href="https://github.com/ai-dev-2024/Antigravity-Claude-Code-Proxy"><img src="https://img.shields.io/badge/Proxy-v3.9.2-blue?style=for-the-badge" alt="Proxy v3.9.2"></a>
+  <a href="https://open-vsx.org/extension/ai-dev-2024/claude-proxy-status"><img src="https://img.shields.io/badge/Extension-v3.9.2-purple?style=for-the-badge" alt="Extension v3.9.2"></a>
   <img src="https://img.shields.io/badge/Claude_Code-Compatible-blueviolet?style=for-the-badge&logo=anthropic" alt="Claude Code Compatible">
   <img src="https://img.shields.io/badge/Antigravity-Powered-00D4AA?style=for-the-badge" alt="Antigravity Powered">
   <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="MIT License">
   <a href="https://ko-fi.com/ai_dev_2024"><img src="https://img.shields.io/badge/Support%20Me-Ko--fi-red?style=for-the-badge&logo=ko-fi" alt="Support Me"></a>
+</p>
+
+<p align="center">
+  <a href="https://open-vsx.org/extension/ai-dev-2024/claude-proxy-status">
+    <img src="https://img.shields.io/badge/Install%20Extension-Open%20VSX-brightgreen?style=for-the-badge&logo=visual-studio-code" alt="Install Extension">
+  </a>
 </p>
 
 <h1 align="center">🚀 Antigravity Claude Code Proxy</h1>
