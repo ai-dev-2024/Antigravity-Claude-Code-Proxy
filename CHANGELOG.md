@@ -2,86 +2,124 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [4.2.0] - 2026-01-02
+---
+
+## Version Scheme
+
+- **v1.x** = Claude Code **CLI** + Proxy (before extension)
+- **v2.x** = Claude Code **Extension** + Proxy (within Antigravity IDE)
+
+---
+
+# Version 2.x — Extension + Proxy
+
+## [2.5.0] - 2026-01-02
 
 ### Added
-- **IDE Account Switcher**: New $(account) icon in status bar to manage Antigravity IDE accounts
+- **IDE Account Switcher**: `$(account)` icon in status bar to manage Antigravity IDE accounts
+- **Simplified 2-Icon Layout**: Account icon + Model name (shows "Offline" in red when proxy down)
 - **Dashboard Improvements**: Yellow highlighted warning about UI name not updating
-- **CLI Documentation**: Clarified `/model flash` command works with CLI only, not extension
 
 ### Fixed
-- **Extension v3.8.0**: Fixed API endpoint mismatch (`/set-model` → `/active-model`)
-- **Model Sync**: Claude Code UI model selection now syncs properly to proxy without reverting
-- **Simplified Layout**: Extension now shows 2 icons (Account + Model) instead of 3
+- **API Endpoint Mismatch**: Fixed `/set-model` → `/active-model` in extension
+- **Model Sync**: Claude Code UI selection now syncs properly without reverting
+
+---
+
+## [2.4.0] - 2026-01-02
+
+### Added
+- **Direct OAuth Re-authentication**: Expired accounts can be re-authenticated from dashboard
+- **Persistent Multi-State OAuth Server**: Supports unlimited back-to-back account additions
+- **Auto-Refresh Dashboard**: Polls every 2 seconds after OAuth, shows ✅ toast on success
+- **Enhanced OAuth Logging**: Detailed flow tracking with state IDs
+
+### Fixed
+- "OAuth flow already in progress" blocking back-to-back logins
+- "State mismatch / CSRF attack" errors on consecutive OAuth attempts
+
+---
+
+## [2.3.0] - 2026-01-01
+
+### Added
+- **Per-Window Model Selection**: Each Antigravity window can use different models
+- **Account Reset Countdown**: Dashboard shows Claude quota reset time per account
+- **Dark Theme Dashboard**: Modern OpenAI/Apple-inspired design with Inter font
 
 ### Changed
-- Status bar extension updated to v3.8.0
-- Updated README with new Status Bar Extension section
+- Model dropdown reordered: Claude → Gemini 3 → Gemini 2.5 → GPT → Other
+- Health check polling now every 5 seconds
 
-## [4.0.2] - 2026-01-01
+---
+
+## [2.2.0] - 2026-01-01
 
 ### Added
 - **PM2 Process Manager**: Automatic crash recovery and process management
-
-## [4.0.1] - 2026-01-01
-
-### Added
-- **Robust Model Routing**: Claude Code UX dropdown now has highest priority
-  - Haiku → gemini-3-flash (mapped automatically)
-  - Opus → claude-opus-4-5-thinking  
-  - Sonnet/Default → claude-sonnet-4-5-thinking
-  - Custom model → Uses dashboard/status bar selection
-- **Status Bar Sync**: Status bar now updates to show actual model being used
-- **Faster Offline Detection**: 2-second timeout for quick status bar updates
+- **Windows Startup Script**: Triple-layer auto-start protection
+- **Material Design Dashboard**: Google Material Symbols, dark zinc palette
 
 ### Changed
-- Reduced polling interval from 5 seconds to 2 seconds
-- Improved extension connection retry logic (1-second delays)
+- Startup task uses `pm2 resurrect` instead of direct `node` call
+
+---
+
+## [2.1.0] - 2026-01-01
+
+### Added
+- **Robust Model Routing**: Claude Code dropdown has highest priority
+  - Haiku → `gemini-3-flash`
+  - Opus → `claude-opus-4-5-thinking`
+  - Sonnet/Default → `claude-sonnet-4-5-thinking`
+  - Custom → Uses dashboard/status bar selection
+- **Status Bar Sync**: Updates to show actual model being used
+- **Faster Offline Detection**: 2-second timeout
 
 ### Fixed
-- Status bar not updating when switching models via Claude Code dropdown
+- Status bar not updating when switching models via dropdown
 - Model priority conflicts between dashboard and extension
 
-## [4.0.0] - 2026-01-01
+---
+
+## [2.0.0] - 2026-01-01
 
 ### Added
-- **Status Bar Model Display**: Real-time model indicator with emoji icons (⚡💎🎭🎵)
-- **3-Second Polling**: Status bar updates automatically from `/active-model`
-- **Model Change Notifications**: Toast notification when model changes via dashboard
-- **Enhanced claude-proxy-status Extension**: Now shows current model instead of static text
-- **Showcase Images**: AI-generated dashboard and status bar screenshots
+- **Status Bar Extension**: Real-time model indicator with emoji icons (⚡💎🎭🎵)
+- **3-Second Polling**: Status bar auto-updates from `/active-model`
+- **Model Change Notifications**: Toast when model changes via dashboard
+- **Extension Model Mapping**: Modified `extension.js` for proper dropdown routing
 
 ### Changed
-- Updated README with v4.0 badge and showcase section
-- Added Status Bar documentation section
-- Improved .gitignore with logs/ and model-override.json
+- Bidirectional sync between extension and proxy
+- Updated README with showcase section
 
-### Fixed
-- Cleaned up debug logging (removed [REQ], [NL-Debug] console spam)
+---
 
-## [3.0.0] - 2025-12-31
+# Version 1.x — CLI + Proxy
+
+## [1.2.0] - 2025-12-31
 
 ### Added
-- **Smart Routing**: Extension dropdown controls actual model with pass-through
-- **Dashboard Override**: Custom model uses dashboard-selected model
-- **Model Persistence**: Survives proxy restarts via model-override.json
-- **Auto-Start**: Proxy starts on Antigravity open via global tasks.json
+- **Smart Routing**: Extension dropdown pass-through support
+- **Dashboard Override**: "Custom model" uses dashboard-selected model
+- **Model Persistence**: Survives proxy restarts via `model-override.json`
+- **Auto-Start**: Proxy starts on Antigravity open via `tasks.json`
 - **Enhanced Logging**: Detailed route logging with source tracking
 
-### Changed
-- Refactored model resolution logic for clearer pass-through behavior
-- Updated README with model switching methods documentation
+---
 
-## [2.0.0] - 2025-12-30
+## [1.1.0] - 2025-12-30
 
 ### Added
 - **Multi-Account Load Balancing**: 4 Google accounts with automatic rotation
 - **Perplexity Integration**: GPT-5, Grok, Kimi, Claude via Perplexity
-- **Beautiful Dashboard**: Real-time account monitoring
-- **Model Aliases**: Type "flash" instead of "gemini-3-flash"
+- **Beautiful Dashboard**: Real-time account monitoring at `localhost:8080`
+- **Model Aliases**: Type `flash` instead of `gemini-3-flash`
+
+---
 
 ## [1.0.0] - 2025-12-29
 
@@ -90,3 +128,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Anthropic-compatible API proxy
 - Google AI integration via Antigravity
 - Basic streaming support
+- CLI model switching with `/model` command
