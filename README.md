@@ -3,7 +3,8 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-4.2.0-blue?style=for-the-badge" alt="Version 4.2.0">
+  <img src="https://img.shields.io/badge/Proxy-v4.2.0-blue?style=for-the-badge" alt="Proxy v4.2.0">
+  <img src="https://img.shields.io/badge/Extension-v3.8.0-purple?style=for-the-badge" alt="Extension v3.8.0">
   <img src="https://img.shields.io/badge/Claude_Code-Compatible-blueviolet?style=for-the-badge&logo=anthropic" alt="Claude Code Compatible">
   <img src="https://img.shields.io/badge/Antigravity-Powered-00D4AA?style=for-the-badge" alt="Antigravity Powered">
   <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="MIT License">
