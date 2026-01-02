@@ -242,6 +242,99 @@ function clearModelOverride() {
     console.log('[ModelSwitch] Global model override cleared - using request models');
 }
 
+// ================= PER-SESSION MODEL STORE =================
+// Allows each Antigravity window or CLI terminal to have its own model
+// Sessions persist to disk and survive proxy restarts
+
+const SESSION_MODELS_FILE = join(__dirname, '..', 'session-models.json');
+const sessionModels = new Map(); // sessionId -> { model, lastUsed, name }
+
+// Load persisted sessions on startup
+function loadSessionModels() {
+    try {
+        if (fs.existsSync(SESSION_MODELS_FILE)) {
+            const data = JSON.parse(fs.readFileSync(SESSION_MODELS_FILE, 'utf-8'));
+            for (const [sessionId, info] of Object.entries(data.sessions || {})) {
+                sessionModels.set(sessionId, info);
+            }
+            console.log(`[SessionStore] Loaded ${sessionModels.size} sessions from disk`);
+        }
+    } catch (err) {
+        console.log(`[SessionStore] Could not load sessions: ${err.message}`);
+    }
+}
+
+// Save sessions to disk
+function persistSessionModels() {
+    try {
+        const data = {
+            sessions: Object.fromEntries(sessionModels),
+            lastSaved: new Date().toISOString()
+        };
+        fs.writeFileSync(SESSION_MODELS_FILE, JSON.stringify(data, null, 2), 'utf-8');
+    } catch (err) {
+        console.log(`[SessionStore] Could not persist sessions: ${err.message}`);
+    }
+}
+
+// Get model for a session (falls back to global model if session not found)
+function getSessionModel(sessionId) {
+    if (!sessionId) return getActiveModel();
+
+    const session = sessionModels.get(sessionId);
+    if (session) {
+        // Update last used time
+        session.lastUsed = new Date().toISOString();
+        return session.model;
+    }
+
+    // Session not found, return global model
+    return getActiveModel();
+}
+
+// Set model for a session
+function setSessionModel(sessionId, model, name = null) {
+    if (!sessionId) {
+        // No session ID = set global model (backward compatible)
+        return setActiveModel(model);
+    }
+
+    const resolved = resolveModelAlias(model);
+    sessionModels.set(sessionId, {
+        model: resolved,
+        name: name || sessionId.slice(0, 8),
+        lastUsed: new Date().toISOString(),
+        createdAt: sessionModels.get(sessionId)?.createdAt || new Date().toISOString()
+    });
+
+    console.log(`[SessionStore] Session ${sessionId.slice(0, 8)} model set to: ${resolved}`);
+    persistSessionModels();
+
+    return resolved;
+}
+
+// Get all sessions
+function getAllSessions() {
+    return Array.from(sessionModels.entries()).map(([id, info]) => ({
+        sessionId: id,
+        ...info
+    }));
+}
+
+// Delete a session
+function deleteSession(sessionId) {
+    if (sessionModels.has(sessionId)) {
+        sessionModels.delete(sessionId);
+        persistSessionModels();
+        console.log(`[SessionStore] Deleted session ${sessionId.slice(0, 8)}`);
+        return true;
+    }
+    return false;
+}
+
+// Load sessions on module init
+loadSessionModels();
+
 async function ensureInitialized() {
     if (isInitialized) return;
     if (initPromise) return initPromise;
@@ -325,6 +418,73 @@ app.delete('/active-model', (req, res) => {
         message: 'Model override cleared - using model from each request'
     });
 });
+
+// ================= SESSION MODEL ENDPOINTS =================
+// Per-window/terminal model isolation
+
+// Get model for a specific session
+app.get('/session-model/:sessionId', (req, res) => {
+    const { sessionId } = req.params;
+    const session = sessionModels.get(sessionId);
+
+    if (session) {
+        res.json({
+            sessionId,
+            model: session.model,
+            name: session.name,
+            lastUsed: session.lastUsed,
+            createdAt: session.createdAt
+        });
+    } else {
+        res.json({
+            sessionId,
+            model: getActiveModel(),
+            isDefault: true,
+            message: 'Session not found, using global model'
+        });
+    }
+});
+
+// Set model for a session
+app.post('/session-model', (req, res) => {
+    const { sessionId, model, name } = req.body;
+    if (!model) {
+        return res.status(400).json({ error: 'model is required' });
+    }
+
+    const resolved = setSessionModel(sessionId, model, name);
+    res.json({
+        success: true,
+        sessionId: sessionId || 'global',
+        model: resolved,
+        message: sessionId
+            ? `Session ${sessionId.slice(0, 8)} model set to: ${resolved}`
+            : `Global model set to: ${resolved}`
+    });
+});
+
+// Get all sessions
+app.get('/sessions', (req, res) => {
+    res.json({
+        sessions: getAllSessions(),
+        globalModel: getActiveModel(),
+        count: sessionModels.size
+    });
+});
+
+// Delete a session
+app.delete('/session-model/:sessionId', (req, res) => {
+    const { sessionId } = req.params;
+    const deleted = deleteSession(sessionId);
+
+    res.json({
+        success: deleted,
+        message: deleted
+            ? `Session ${sessionId.slice(0, 8)} deleted`
+            : 'Session not found'
+    });
+});
+
 app.get('/perplexity-sessions', async (req, res) => {
     try {
         await ensureInitialized();
@@ -1030,6 +1190,15 @@ app.post('/v1/messages', async (req, res) => {
         let resolvedModel = resolveModelAlias(model) || 'gemini-3-flash';
         const originalModelName = model; // Original model name from extension
 
+        // ================= PER-SESSION MODEL (VIA HEADER) =================
+        // Check for X-Session-ID header - allows each window/terminal to use different models
+        const sessionId = req.headers['x-session-id'];
+        if (sessionId && sessionModels.has(sessionId)) {
+            const sessionModel = getSessionModel(sessionId);
+            console.log(`[API] Per-session model for ${sessionId.slice(0, 8)}: ${sessionModel}`);
+            resolvedModel = sessionModel;
+        }
+
         // ================= PER-WINDOW MODEL OVERRIDE (VIA HEADER) =================
         // Check for X-Override-Model header - allows each VS Code window to use different models
         const headerOverrideModel = req.headers['x-override-model'];
@@ -1096,17 +1265,19 @@ app.post('/v1/messages', async (req, res) => {
                 console.log(`[API] Using model from status bar: ${globalModelOverride}`);
                 resolvedModel = globalModelOverride;
             } else if (lastExtensionModel && currentExtensionModel !== lastExtensionModel && currentExtensionModel !== globalModelOverride) {
-                // User switched to a DIFFERENT model via Claude Code UI - clear override
-                console.log(`[API] Claude Code UI changed: ${lastExtensionModel} → ${currentExtensionModel} (clearing override)`);
-                globalModelOverride = null;
+                // User switched to a DIFFERENT model via Claude Code UI
+                // Update globalModelOverride to match so status bar shows correct model
+                console.log(`[API] Claude Code UI changed: ${lastExtensionModel} → ${currentExtensionModel} (syncing to status bar)`);
+                setActiveModel(currentExtensionModel);  // This updates globalModelOverride AND persists it
                 resolvedModel = currentExtensionModel;
             } else if (globalModelOverride) {
                 // Status bar override is set, use it
                 console.log(`[API] Using status bar override: ${globalModelOverride}`);
                 resolvedModel = globalModelOverride;
             } else {
-                // No override, use what Claude Code sent
+                // No override, use what Claude Code sent and sync to status bar
                 console.log(`[API] Using Claude Code model: ${currentExtensionModel}`);
+                setActiveModel(currentExtensionModel);  // Sync to status bar
                 resolvedModel = currentExtensionModel;
             }
 

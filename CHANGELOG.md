@@ -15,6 +15,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 # Version 2.x — Extension + Proxy
 
+## [2.6.0] - 2026-01-03
+
+### Added
+- **Per-Session Model Isolation**: Each Antigravity window and CLI terminal has its own model
+- **Sessions Dashboard Tab**: View all active sessions with model, last used time, and delete option
+- **Session Persistence**: Models are persisted per-session in `session-models.json` and survive proxy restarts
+- **Auto-Restart on Crash**: Proxy automatically restarts via PM2, sessions resume with their models
+- **Universal CLI Support**: Set permanent `ANTHROPIC_BASE_URL` env var for all terminals
+- **Cross-Shell Wrappers**: `claude-session.bat` and `claude-session.sh` for per-folder sessions
+
+### Changed
+- Extension now uses `/session-model` API instead of `/active-model` for per-window isolation
+- Dashboard Sessions page shows auto-session enabled status instead of manual setup instructions
+
+### Fixed
+- **Proxy Entry Point**: Fixed PM2 to start `index.js` instead of `server.js` (was causing immediate shutdown)
+- **Model Reversion Issue**: Windows no longer affect each other's models
+
+---
+
 ## [2.5.0] - 2026-01-02
 
 ### Added

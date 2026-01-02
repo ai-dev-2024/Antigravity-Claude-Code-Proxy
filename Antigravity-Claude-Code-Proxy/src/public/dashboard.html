@@ -970,6 +970,9 @@
                 <a class="nav-item" data-page="perplexity">
                     <span class="material-symbols-rounded nav-icon">travel_explore</span> Perplexity Usage
                 </a>
+                <a class="nav-item" data-page="sessions">
+                    <span class="material-symbols-rounded nav-icon">device_hub</span> Sessions
+                </a>
             </div>
             <div class="nav-section">
                 <div class="nav-section-title">Links</div>
@@ -1088,7 +1091,8 @@
                             <li
                                 style="background: rgba(245, 158, 11, 0.2); padding: 0.3rem 0.5rem; border-radius: 4px; border-left: 3px solid var(--warning);">
                                 <strong style="color: var(--warning);">Note:</strong> The Claude Code UI name may not
-                                update, but the proxy routes to your selected model</li>
+                                update, but the proxy routes to your selected model
+                            </li>
                             <li>You can also use <code
                                     style="background: var(--bg-hover); padding: 0.1rem 0.4rem; border-radius: 4px;">/model flash</code>
                                 in Claude Code <strong style="color: var(--warning);">(CLI only, not extension)</strong>
@@ -1194,6 +1198,63 @@
             </div>
         </div>
     </main>
+
+    <!-- Sessions Page -->
+    <div id="page-sessions" class="page">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Active Sessions</div>
+                <div class="stat-value" id="sessions-count">-</div>
+                <div class="stat-indicator success">Windows/Terminals</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Global Model</div>
+                <div class="stat-value" id="global-model-display" style="font-size: 1rem;">-</div>
+                <div class="stat-indicator">Fallback for new sessions</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">Session Tracking</div>
+                    <div class="card-description">Each Antigravity window and CLI terminal has its own session with
+                        model persistence</div>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="loadSessions()">
+                    <span class="material-symbols-rounded" style="font-size: 16px;">refresh</span> Refresh
+                </button>
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="models-table">
+                    <thead>
+                        <tr>
+                            <th>Session ID</th>
+                            <th>Name</th>
+                            <th>Model</th>
+                            <th>Last Used</th>
+                            <th>Created</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sessions-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card" style="background: var(--bg-secondary); border-left: 3px solid var(--success);">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <span class="material-symbols-rounded"
+                    style="color: var(--success); font-size: 1.5rem;">check_circle</span>
+                <div>
+                    <div style="font-weight: 600; color: var(--text-primary);">Auto-Session Enabled</div>
+                    <div style="font-size: 0.85rem; color: var(--text-muted);">Each Antigravity window and CLI terminal
+                        automatically gets its own session. Models persist per-session.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
 
     <!-- Google Modal -->
     <div id="google-modal" class="modal-overlay">
@@ -1325,6 +1386,62 @@
         function openGoogleModal() { document.getElementById('google-modal').classList.add('show'); }
         function openPerplexityModal() { document.getElementById('perplexity-modal').classList.add('show'); }
         function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+        // Sessions management
+        async function loadSessions() {
+            try {
+                const res = await fetch('/sessions');
+                const data = await res.json();
+
+                document.getElementById('sessions-count').textContent = data.count || 0;
+                document.getElementById('global-model-display').textContent = data.globalModel || 'gemini-3-flash';
+
+                const tbody = document.getElementById('sessions-tbody');
+                if (!data.sessions || data.sessions.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:2rem;">No active sessions. Sessions are created when windows/terminals connect.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.sessions.map(s => `
+                    <tr>
+                        <td><code style="font-size:0.75rem;background:var(--bg-hover);padding:0.2rem 0.4rem;border-radius:4px;">${s.sessionId.slice(0, 12)}...</code></td>
+                        <td>${s.name || '-'}</td>
+                        <td><span class="badge badge-success">${s.model}</span></td>
+                        <td style="font-size:0.8rem;color:var(--text-muted);">${formatTimeAgo(s.lastUsed)}</td>
+                        <td style="font-size:0.8rem;color:var(--text-muted);">${formatTimeAgo(s.createdAt)}</td>
+                        <td><button class="btn-delete" onclick="deleteSession('${s.sessionId}')" title="Delete session"><span class="material-symbols-rounded" style="font-size:16px;">delete</span></button></td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                console.error('Failed to load sessions:', e);
+            }
+        }
+
+        async function deleteSession(sessionId) {
+            if (!confirm('Delete this session? The window/terminal will create a new session on next connect.')) return;
+            try {
+                await fetch(`/session-model/${sessionId}`, { method: 'DELETE' });
+                showToast('Session deleted');
+                loadSessions();
+            } catch (e) {
+                showToast('Failed to delete session', true);
+            }
+        }
+
+        function formatTimeAgo(dateStr) {
+            if (!dateStr) return '-';
+            const d = new Date(dateStr);
+            const now = new Date();
+            const diffMs = now - d;
+            const diffMins = Math.floor(diffMs / 60000);
+            if (diffMins < 1) return 'just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            const diffHours = Math.floor(diffMins / 60);
+            if (diffHours < 24) return `${diffHours}h ago`;
+            const diffDays = Math.floor(diffHours / 24);
+            return `${diffDays}d ago`;
+        }
+
 
         async function renamePerplexityAccount(email) {
             const newName = prompt('Enter a new name for this Perplexity account:', email);
