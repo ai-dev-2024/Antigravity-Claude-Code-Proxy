@@ -1,14 +1,34 @@
-# Changelog
+# Changelog — Antigravity Claude Proxy Server
 
-All notable changes to this project will be documented in this file.
+All notable changes to the proxy server will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+---
 
-## [4.2.0] - 2026-01-02
+## Version Scheme
+
+- **v1.x** = Claude Code **CLI** + Proxy (before extension)
+- **v2.x** = Claude Code **Extension** + Proxy (within Antigravity IDE)
+
+---
+
+# Version 2.x — Extension + Proxy
+
+## [2.5.0] - 2026-01-02
 
 ### Added
-- **Direct OAuth Re-authentication**: Expired accounts can now be re-authenticated directly from dashboard
+- **IDE Account Switcher Support**: Extension communicates with proxy for account info
+- **Dashboard Warning**: Yellow highlighted note about UI model name not updating
+
+### Fixed
+- **API Endpoint**: Standardized on `/active-model` for all model operations
+- **Model Sync**: Fixed issue where Claude UI model selection would revert
+
+---
+
+## [2.4.0] - 2026-01-02
+
+### Added
+- **Direct OAuth Re-authentication**: Expired accounts can be re-authenticated directly from dashboard
   - "Re-authenticate" button opens Google sign-in popup
   - No need for Antigravity IDE - direct Google OAuth flow
   - Account is automatically updated with new refresh token
@@ -38,7 +58,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Callback server being closed when starting new OAuth flow
 - Accounts not appearing immediately after successful authentication
 
-## [4.1.0] - 2026-01-01
+---
+
+## [2.3.0] - 2026-01-01
 
 ### Added
 - **Per-Window Model Selection**: Each Antigravity window can now use different models independently
@@ -59,7 +81,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Health check polling now every 5 seconds (was 2 seconds)
 - Extension no longer overrides window model on proxy poll
 
-## [4.0.2] - 2026-01-01
+---
+
+## [2.2.0] - 2026-01-01
 
 ### Added
 - **PM2 Process Manager**: Automatic crash recovery and process management
@@ -80,13 +104,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Startup task now uses `pm2 resurrect` instead of direct `node` call
 - Dashboard uses Material Icons instead of emojis
 
-## [4.0.1] - 2026-01-01
+---
+
+## [2.1.0] - 2026-01-01
 
 ### Added
 - **Robust Model Routing**: Claude Code UX dropdown now has highest priority
-  - Haiku → gemini-3-flash (mapped automatically)
-  - Opus → claude-opus-4-5-thinking  
-  - Sonnet/Default → claude-sonnet-4-5-thinking
+  - Haiku → `gemini-3-flash` (mapped automatically)
+  - Opus → `claude-opus-4-5-thinking`
+  - Sonnet/Default → `claude-sonnet-4-5-thinking`
   - Custom model → Uses dashboard/status bar selection
 - **Status Bar Sync**: Status bar now updates to show actual model being used
 - **Faster Offline Detection**: 2-second timeout for quick status bar updates
@@ -99,43 +125,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Status bar not updating when switching models via Claude Code dropdown
 - Model priority conflicts between dashboard and extension
 
-## [4.0.0] - 2026-01-01
+---
+
+## [2.0.0] - 2026-01-01
 
 ### Added
 - **Status Bar Model Display**: Real-time model indicator with emoji icons (⚡💎🎭🎵)
 - **3-Second Polling**: Status bar updates automatically from `/active-model`
 - **Model Change Notifications**: Toast notification when model changes via dashboard
 - **Enhanced claude-proxy-status Extension**: Now shows current model instead of static text
-- **Showcase Images**: AI-generated dashboard and status bar screenshots
+- **Extension Model Mapping**: Modified Claude Code `extension.js` for proper dropdown routing
+- **Showcase Images**: Dashboard and status bar screenshots
 
 ### Changed
-- Updated README with v4.0 badge and showcase section
+- Updated README with v2.0 badge and showcase section
 - Added Status Bar documentation section
 - Improved .gitignore with logs/ and model-override.json
 
 ### Fixed
 - Cleaned up debug logging (removed [REQ], [NL-Debug] console spam)
 
-## [3.0.0] - 2025-12-31
+---
+
+# Version 1.x — CLI + Proxy
+
+## [1.2.0] - 2025-12-31
 
 ### Added
 - **Smart Routing**: Extension dropdown controls actual model with pass-through
-- **Dashboard Override**: Custom model uses dashboard-selected model
-- **Model Persistence**: Survives proxy restarts via model-override.json
-- **Auto-Start**: Proxy starts on Antigravity open via global tasks.json
+- **Dashboard Override**: "Custom model" uses dashboard-selected model
+- **Model Persistence**: Survives proxy restarts via `model-override.json`
+- **Auto-Start**: Proxy starts on Antigravity open via global `tasks.json`
 - **Enhanced Logging**: Detailed route logging with source tracking
 
 ### Changed
 - Refactored model resolution logic for clearer pass-through behavior
 - Updated README with model switching methods documentation
 
-## [2.0.0] - 2025-12-30
+---
+
+## [1.1.0] - 2025-12-30
 
 ### Added
 - **Multi-Account Load Balancing**: 4 Google accounts with automatic rotation
 - **Perplexity Integration**: GPT-5, Grok, Kimi, Claude via Perplexity
-- **Beautiful Dashboard**: Real-time account monitoring
-- **Model Aliases**: Type "flash" instead of "gemini-3-flash"
+- **Beautiful Dashboard**: Real-time account monitoring at `localhost:8080`
+- **Model Aliases**: Type `flash` instead of `gemini-3-flash`
+
+---
 
 ## [1.0.0] - 2025-12-29
 
@@ -144,3 +181,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Anthropic-compatible API proxy
 - Google AI integration via Antigravity
 - Basic streaming support
+- CLI model switching with `/model` command
+

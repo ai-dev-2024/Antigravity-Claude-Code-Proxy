@@ -1,7 +1,7 @@
 ![Antigravity Claude Code Proxy Banner](docs/images/banner.png)
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-4.1.0-blue?style=for-the-badge" alt="Version 4.1.0">
+  <img src="https://img.shields.io/badge/Version-2.5.0-blue?style=for-the-badge" alt="Version 2.5.0">
   <img src="https://img.shields.io/badge/Claude_Code-Compatible-blueviolet?style=for-the-badge&logo=anthropic" alt="Claude Code Compatible">
   <img src="https://img.shields.io/badge/Antigravity-Powered-00D4AA?style=for-the-badge" alt="Antigravity Powered">
   <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="MIT License">
@@ -181,7 +181,7 @@ Features:
 
 ---
 
-## 📊 Status Bar (v4.0)
+## 📊 Status Bar (v2.0+)
 
 The status bar extension shows your current model in real-time:
 
@@ -228,7 +228,7 @@ Antigravity-Claude-Code-Proxy/
 │   └── images/            # Showcase images
 ├── SECURITY.md            # Security policy
 ├── CHANGELOG.md           # Version history
-└── package.json           # v4.0.0
+└── package.json           # v2.5.0
 ```
 
 ---
@@ -246,12 +246,17 @@ See [SECURITY.md](SECURITY.md) for full security policy.
 
 ## 📋 Version History
 
-| Version | Features |
-|---------|----------|
-| **v4.0** | Status bar model display, production docs |
-| **v3.0** | Smart routing, model persistence |
-| **v2.0** | Multi-account load balancing, Perplexity |
-| **v1.0** | Initial release |
+| Version | Type | Features |
+|---------|------|----------|
+| **v2.5** | Extension | IDE account switcher, simplified layout |
+| **v2.4** | Extension | Direct OAuth, multi-state auth server |
+| **v2.3** | Extension | Per-window models, dark theme dashboard |
+| **v2.2** | Extension | PM2 process manager, Material Design |
+| **v2.1** | Extension | Robust model routing, faster polling |
+| **v2.0** | Extension | Status bar extension, model mapping |
+| **v1.2** | CLI | Smart routing, model persistence |
+| **v1.1** | CLI | Multi-account, Perplexity, dashboard |
+| **v1.0** | CLI | Initial release |
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed history.
 
