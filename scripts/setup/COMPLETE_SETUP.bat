@@ -80,18 +80,34 @@ goto MENU
 cls
 echo.
 echo ================================================================
-echo   Starting Proxy Server
+echo   Starting Proxy Server (PM2)
 echo ================================================================
 echo.
-echo IMPORTANT: Keep this window open while using Claude Code!
+echo Checking if PM2 is installed...
+where pm2 >nul 2>&1
+if %ERRORLEVEL% NEQ 0 (
+    echo Installing PM2 globally...
+    npm install -g pm2
+)
 echo.
-echo The proxy will start on http://localhost:8080
-echo To stop it, press Ctrl+C
+echo Starting proxy with PM2 (runs in background)...
+cd /d "%~dp0..\..\Antigravity-Claude-Code-Proxy"
+pm2 stop antigravity-proxy 2>nul
+pm2 delete antigravity-proxy 2>nul
+pm2 start src/server.js --name antigravity-proxy
+pm2 save
 echo.
-pause
+echo ================================================================
+echo   Proxy is running in background!
+echo ================================================================
 echo.
-cd /d "%~dp0antigravity-claude-proxy-main"
-npm start
+echo   Dashboard: http://localhost:8080/dashboard
+echo   The proxy will keep running even if you close this window.
+echo   To stop: pm2 stop antigravity-proxy
+echo.
+echo Current PM2 status:
+pm2 list
+echo.
 pause
 goto MENU
 
@@ -188,8 +204,8 @@ echo.
 echo You can now use Claude Code CLI with multiple Google accounts.
 echo.
 echo Remember:
-echo   1. Keep the proxy server running
-echo   2. Add all your Google accounts
+echo   1. Proxy runs in background via PM2
+echo   2. Add all your Google accounts  
 echo   3. Run 'claude' in any terminal
 echo.
 echo Thank you for using Antigravity Claude Proxy!

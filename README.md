@@ -3,8 +3,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/ai-dev-2024/Antigravity-Claude-Code-Proxy"><img src="https://img.shields.io/badge/Proxy-v2.7.0-blue?style=for-the-badge" alt="Proxy v2.7.0"></a>
-  <a href="https://open-vsx.org/extension/ai-dev-2024/claude-proxy-status"><img src="https://img.shields.io/badge/Extension-v4.2.0-purple?style=for-the-badge" alt="Extension v4.2.0"></a>
+  <a href="https://github.com/ai-dev-2024/Antigravity-Claude-Code-Proxy"><img src="https://img.shields.io/badge/Proxy-v2.8.0-blue?style=for-the-badge" alt="Proxy v2.8.0"></a>
+  <a href="https://open-vsx.org/extension/ai-dev-2024/claude-proxy-status"><img src="https://img.shields.io/badge/Extension-v4.2.2-purple?style=for-the-badge" alt="Extension v4.2.2"></a>
   <img src="https://img.shields.io/badge/Claude_Code-Compatible-blueviolet?style=for-the-badge&logo=anthropic" alt="Claude Code Compatible">
   <img src="https://img.shields.io/badge/Antigravity-Powered-00D4AA?style=for-the-badge" alt="Antigravity Powered">
   <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="MIT License">
@@ -116,7 +116,8 @@
 ### Prerequisites
 
 - **Node.js** 18+ 
-- **Antigravity** desktop app ([Download](https://antigravity.dev))
+- **PM2** (process manager) - `npm install -g pm2`
+- **Antigravity** desktop app ([Download](https://antigravity.dev)) or VS Code
 - **Claude Code CLI** (`npm install -g @anthropic-ai/claude-code`)
 
 ### Installation
@@ -129,8 +130,9 @@ cd Antigravity-Claude-Code-Proxy/Antigravity-Claude-Code-Proxy
 # Install dependencies
 npm install
 
-# Start the proxy
-npm start
+# Start the proxy (runs as persistent background service)
+pm2 start src/server.js --name antigravity-proxy
+pm2 save
 ```
 
 ### Configure Environment
@@ -148,11 +150,26 @@ echo 'export ANTHROPIC_API_KEY="antigravity-proxy"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
+### Auto-Start on Windows Login (Recommended)
+
+```batch
+# Run the setup script:
+cd scripts\setup
+SETUP_STARTUP.bat
+```
+
+This will:
+- Register the proxy with PM2
+- Create a Windows startup script
+- Proxy starts automatically on login
+
 ### Start Using!
 
 ```bash
 claude
 ```
+
+> **Note:** The proxy runs in the background via PM2. You can close any terminal or IDE window without affecting it. To check status: `pm2 list`. To stop: `pm2 stop antigravity-proxy`.
 
 ---
 

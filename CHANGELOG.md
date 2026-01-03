@@ -15,6 +15,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 # Version 2.x — Extension + Proxy
 
+## [2.8.0] - 2026-01-03
+
+### Setup Improvements
+- **PM2-Based Startup**: Proxy now runs via PM2 for robust background operation
+- **Unified Setup Script**: `SETUP_STARTUP.bat` installs PM2, registers proxy, and configures auto-start
+- **Window Independence**: Closing any IDE window no longer affects the proxy
+- **Multi-User Ready**: Works with Claude Code CLI, Antigravity, VS Code, and terminals simultaneously
+
+### Changed
+- Removed VBS-based startup scripts (moved to `_archive/`)
+- Updated README with PM2 instructions and auto-start guide
+- `COMPLETE_SETUP.bat` now uses PM2 instead of `npm start`
+
+### Fixed
+- Proxy going offline when closing the project window
+
+---
+
 ## [2.7.1] - 2026-01-03
 
 ### Extension v4.2.2
