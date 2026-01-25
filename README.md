@@ -3,12 +3,18 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/ai-dev-2024/Antigravity-Claude-Code-Proxy"><img src="https://img.shields.io/badge/Proxy-v2.8.0-blue?style=for-the-badge" alt="Proxy v2.8.0"></a>
-  <a href="https://open-vsx.org/extension/ai-dev-2024/claude-proxy-status"><img src="https://img.shields.io/badge/Extension-v4.2.2-purple?style=for-the-badge" alt="Extension v4.2.2"></a>
+  <a href="https://github.com/ai-dev-2024/Antigravity-Claude-Code-Proxy"><img src="https://img.shields.io/badge/Proxy-v2.9.0-blue?style=for-the-badge" alt="Proxy v2.9.0"></a>
+  <a href="https://open-vsx.org/extension/ai-dev-2024/claude-proxy-status"><img src="https://img.shields.io/badge/Extension-v4.3.0-purple?style=for-the-badge" alt="Extension v4.3.0"></a>
   <img src="https://img.shields.io/badge/Claude_Code-Compatible-blueviolet?style=for-the-badge&logo=anthropic" alt="Claude Code Compatible">
   <img src="https://img.shields.io/badge/Antigravity-Powered-00D4AA?style=for-the-badge" alt="Antigravity Powered">
   <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="MIT License">
   <a href="https://ko-fi.com/ai_dev_2024"><img src="https://img.shields.io/badge/Support%20Me-Ko--fi-red?style=for-the-badge&logo=ko-fi" alt="Support Me"></a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/VS%20Code-Tested-007ACC?style=flat-square&logo=visual-studio-code" alt="VS Code">
+  <img src="https://img.shields.io/badge/Antigravity-Tested-00D4AA?style=flat-square" alt="Antigravity">
+  <img src="https://img.shields.io/badge/Cursor-Tested-black?style=flat-square" alt="Cursor">
 </p>
 
 <p align="center">
@@ -99,7 +105,7 @@
 | **Automatic Load Balancing** | Smart rotation across 4+ Google accounts with cooldown |
 | **Status Bar Integration** | See current model with emoji icons (⚡💎🎭🎵) |
 | **Beautiful Dashboard** | Monitor accounts, usage, and switch models at `localhost:8080` |
-| **Auto-Start** | Proxy starts automatically when you open your IDE |
+| **Auto-Start** | Proxy starts when extension is enabled (opt-in) |
 | **Model Persistence** | Your selected model survives restarts |
 
 ### 🧠 Smart Features
@@ -150,10 +156,11 @@ echo 'export ANTHROPIC_API_KEY="antigravity-proxy"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
-### Auto-Start on Windows Login (Recommended)
+### Auto-Start on Windows Login (Optional)
+
+> **Note:** By default, the proxy only starts when you open Antigravity with the extension enabled. For system-wide startup on Windows login, run:
 
 ```batch
-# Run the setup script:
 cd scripts\setup
 SETUP_STARTUP.bat
 ```
@@ -161,7 +168,7 @@ SETUP_STARTUP.bat
 This will:
 - Register the proxy with PM2
 - Create a Windows startup script
-- Proxy starts automatically on login
+- Proxy starts automatically on Windows login
 
 ### Start Using!
 
@@ -297,6 +304,7 @@ See [SECURITY.md](SECURITY.md) for full security policy.
 
 | Version | Type | Features |
 |---------|------|----------|
+| **v2.9** | Extension v4.3.0 | **Opt-in auto-start**, proxy disabled by default |
 | **v2.7** | Extension v4.1.1 | Per-window model selection, workspace persistence |
 | **v2.6** | Extension | Per-session isolation, sessions dashboard |
 | **v2.5** | Extension | IDE account switcher, simplified layout |

@@ -15,6 +15,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 # Version 2.x — Extension + Proxy
 
+## [2.9.0] - 2026-01-25
+
+### Extension v4.3.0
+- **Default Proxy Disabled**: Proxy no longer auto-starts on first install
+- **Respects Extension State**: Proxy only starts when extension is enabled in Extension Manager
+- **Removed Auto-Run Task**: Removed `tasks.json` startup task that launched proxy on folder open
+- **Optional System Startup**: Users can manually enable system startup via `scripts/setup/SETUP_STARTUP.bat`
+
+### Changed
+- Extension defaults to disabled state on fresh install
+- Proxy auto-starts ONLY when extension is enabled
+
+---
+
 ## [2.8.0] - 2026-01-03
 
 ### Setup Improvements
