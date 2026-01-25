@@ -3,22 +3,66 @@ name: Publish Extension
 on:
   push:
     tags:
-      - 'v*'  # Triggers on version tags like v2.8.0, v2.9.0, etc.
+      - 'v*'  # Triggers on version tags like v2.9.0, v3.0.0, etc.
 
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: true
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install dependencies
+      - name: Get version from tag
+        id: get_version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          echo "Releasing version: $VERSION"
+
+      - name: Update README version badges
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          # Update Proxy version badge
+          sed -i "s/Proxy-v[0-9]*\.[0-9]*\.[0-9]*/Proxy-v$VERSION/g" README.md
+          # Update Extension version badge (use package.json version)
+          EXT_VERSION=$(node -p "require('./claude-proxy-ext-src/package.json').version")
+          sed -i "s/Extension-v[0-9]*\.[0-9]*\.[0-9]*/Extension-v$EXT_VERSION/g" README.md
+          echo "Updated badges to Proxy v$VERSION, Extension v$EXT_VERSION"
+
+      - name: Commit badge updates
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add README.md
+          git diff --staged --quiet || git commit -m "chore: auto-update version badges to ${{ steps.get_version.outputs.TAG }}"
+          git push origin HEAD:main || echo "No changes to push"
+
+      - name: Extract changelog for this version
+        id: changelog
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          # Extract changelog section for this version
+          CHANGELOG=$(awk "/## \[$VERSION\]/,/^## \[/" CHANGELOG.md | sed '$ d' | tail -n +2)
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="Release $VERSION"
+          fi
+          # Save to file for multi-line output
+          echo "$CHANGELOG" > release_notes.md
+          echo "Extracted changelog for v$VERSION"
+
+      - name: Install extension dependencies
         working-directory: claude-proxy-ext-src
         run: npm install
 
@@ -36,6 +80,16 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: claude-proxy-ext-src/*.vsix
-          generate_release_notes: true
+          body_path: release_notes.md
+          name: "v${{ steps.get_version.outputs.VERSION }} - Extension v$(node -p \"require('./claude-proxy-ext-src/package.json').version\")"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        run: |
+          echo "## 🚀 Release Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ steps.get_version.outputs.TAG }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Extension**: v$(node -p \"require('./claude-proxy-ext-src/package.json').version\")" >> $GITHUB_STEP_SUMMARY
+          echo "- **Open VSX**: https://open-vsx.org/extension/ai-dev-2024/claude-proxy-status" >> $GITHUB_STEP_SUMMARY
+          echo "- **GitHub Release**: Created with VSIX attached" >> $GITHUB_STEP_SUMMARY
