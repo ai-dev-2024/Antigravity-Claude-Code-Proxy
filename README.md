@@ -9,6 +9,7 @@
   <img src="https://img.shields.io/badge/Antigravity-Powered-00D4AA?style=for-the-badge" alt="Antigravity Powered">
   <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="MIT License">
   <a href="https://ko-fi.com/ai_dev_2024"><img src="https://img.shields.io/badge/Support%20Me-Ko--fi-red?style=for-the-badge&logo=ko-fi" alt="Support Me"></a>
+  <a href="https://startup.z.ai/"><img src="https://img.shields.io/badge/Part%20of-ZAI%20Start--up%20Community-8b5cf6?style=for-the-badge" alt="ZAI Community"></a>
 </p>
 
 <p align="center">
