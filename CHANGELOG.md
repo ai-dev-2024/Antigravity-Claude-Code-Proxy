@@ -15,6 +15,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 # Version 2.x — Extension + Proxy
 
+## [Unreleased]
+
+### Security
+- **OAuth client secret removed from source**: the proxy no longer ships a hardcoded Google OAuth client secret.
+
+### Changed
+- **`GOOGLE_OAUTH_CLIENT_SECRET` is now required** for Google login (`npm run accounts:add`) and token refresh. Set it in `Antigravity-Claude-Code-Proxy/.env` (see the new `.env.example`) or your environment. If it's missing, the proxy fails with a clear error instead of an opaque Google 400.
+
+---
+
 ## [2.9.0] - 2026-01-25
 
 ### Extension v4.3.0
