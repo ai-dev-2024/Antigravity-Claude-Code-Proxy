@@ -223,6 +223,15 @@ export function startCallbackServer(expectedState, timeoutMs = 120000) {
 }
 
 /**
+ * Fail fast with a clear message when the OAuth client secret is not configured.
+ */
+function requireClientSecret() {
+    if (!OAUTH_CONFIG.clientSecret) {
+        throw new Error('GOOGLE_OAUTH_CLIENT_SECRET is not set. Set it in your environment or .env to use Google login and token refresh.');
+    }
+}
+
+/**
  * Exchange authorization code for tokens
  *
  * @param {string} code - Authorization code from OAuth callback
@@ -230,6 +239,7 @@ export function startCallbackServer(expectedState, timeoutMs = 120000) {
  * @returns {Promise<{accessToken: string, refreshToken: string, expiresIn: number}>} OAuth tokens
  */
 export async function exchangeCode(code, verifier) {
+    requireClientSecret();
     const response = await fetch(OAUTH_CONFIG.tokenUrl, {
         method: 'POST',
         headers: {
@@ -274,6 +284,7 @@ export async function exchangeCode(code, verifier) {
  * @returns {Promise<{accessToken: string, expiresIn: number}>} New access token
  */
 export async function refreshAccessToken(refreshToken) {
+    requireClientSecret();
     const response = await fetch(OAUTH_CONFIG.tokenUrl, {
         method: 'POST',
         headers: {
