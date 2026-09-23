@@ -11,7 +11,7 @@ The Antigravity Claude Proxy acts as a bridge between Claude Code CLI and Google
 ```
 Claude Code CLI → Antigravity Claude Proxy → Multiple Google AI Accounts
                                       ↓
-                               Automatic Load Balancing
+                               Session Management + Failover
 ```
 
 ## Prerequisites
@@ -210,7 +210,7 @@ npm run accounts:verify
 npm run accounts:clear
 ```
 
-## Load Balancing Features
+## Session Management Features
 
 The proxy automatically:
 - **Sticky account selection**: Stays on the same account to maximize prompt cache hits
@@ -247,7 +247,7 @@ npm run accounts
 1. **Always keep the proxy server running** when using Claude Code CLI
 2. **Multiple terminals**: Run the proxy in one terminal and Claude Code in another
 3. **Account limits**: Each Google account has its own quota limits
-4. **Automatic switching**: The proxy will automatically switch accounts when rate limits are hit
+4. **Automatic failover**: The proxy moves to another session if the current one is unavailable
 5. **Security**: OAuth tokens are stored locally and used for API authentication
 
 ## Troubleshooting

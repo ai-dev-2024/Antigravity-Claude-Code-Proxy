@@ -58,7 +58,7 @@ claude
 
 1. **Proxy not working**: Make sure the proxy is running (START_PROXY.bat)
 2. **Authentication errors**: Re-add accounts using ADD_ACCOUNT.bat
-3. **Rate limiting**: The proxy will automatically switch accounts
+3. **Rate limiting (429)**: Wait for the limit to reset; the dashboard shows each session's status
 
 ## Need Help?
 

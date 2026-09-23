@@ -103,12 +103,11 @@ node src/accounts-cli.js list
 
 ---
 
-## 📈 Benefits of Multiple Accounts
+## 📈 Benefits of Multiple Sessions
 
-1. **15x More Quota**: Each account has separate daily limits
-2. **Load Balancing**: Automatic switching between accounts
-3. **No Rate Limits**: When one hits limits, others continue
-4. **Higher Throughput**: More parallel requests possible
+1. **Failover**: If one session is unavailable, requests continue on another
+2. **Session Health**: Each session's status is tracked on the dashboard
+3. **Stable Sessions**: Requests stay on one session to keep prompt caching effective
 
 ## 🎉 Ready to Add More Accounts?
 

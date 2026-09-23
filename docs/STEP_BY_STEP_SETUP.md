@@ -159,10 +159,9 @@ Once you've added your accounts and started the proxy:
 1. **Open VSCode**
 2. **Open integrated terminal** (`Ctrl + `)
 3. **Run**: `claude`
-4. **Enjoy** using all your Google AI accounts' combined quota!
+4. **Start using** Claude Code through the proxy.
 
 The proxy will automatically:
-- Balance requests across all your Google accounts
-- Switch accounts when rate limits are hit
+- Keep requests on a stable session
+- Fail over when a session is unavailable
 - Maintain session continuity for better performance
-- Maximize your total available quota

@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/ai-dev-2024/Antigravity-Claude-Code-Proxy"><img src="https://img.shields.io/badge/Proxy-v2.9.4-blue?style=for-the-badge" alt="Proxy v2.9.0"></a>
+  <a href="https://github.com/ai-dev-2024/Antigravity-Claude-Code-Proxy"><img src="https://img.shields.io/badge/Proxy-v2.9.4-blue?style=for-the-badge" alt="Proxy v2.9.4"></a>
   <a href="https://open-vsx.org/extension/ai-dev-2024/claude-proxy-status"><img src="https://img.shields.io/badge/Extension-v4.3.0-purple?style=for-the-badge" alt="Extension v4.3.0"></a>
   <img src="https://img.shields.io/badge/Claude_Code-Compatible-blueviolet?style=for-the-badge&logo=anthropic" alt="Claude Code Compatible">
   <img src="https://img.shields.io/badge/Antigravity-Powered-00D4AA?style=for-the-badge" alt="Antigravity Powered">
@@ -33,7 +33,7 @@
 <p align="center">
   <strong>Use Claude Code CLI with Gemini, GPT-5, Grok, and 20+ AI models</strong>
   <br><br>
-  <em>A production-ready multi-provider AI gateway with automatic load balancing,<br>
+  <em>A production-ready multi-provider AI gateway with session management and failover,<br>
   real-time status bar integration, and beautiful monitoring dashboard</em>
 </p>
 
@@ -55,7 +55,7 @@
 | Without Proxy | With Proxy |
 |--------------|------------|
 | Only Claude models | **20+ AI models** (Gemini, GPT-5, Grok, Claude, etc.) |
-| Single account | **Multi-account load balancing** |
+| Manual session handling | **Managed sessions with automatic failover** |
 | No monitoring | **Real-time dashboard** |
 | No status | **Status bar integration** |
 
@@ -77,7 +77,7 @@
 <p align="center">
   <img src="docs/images/dashboard.png" alt="Dashboard" width="700">
   <br>
-  <em>Real-time dashboard with multi-account load balancing and usage stats</em>
+  <em>Real-time dashboard with session health and usage stats</em>
 </p>
 
 <p align="center">
@@ -107,7 +107,7 @@
 | Feature | Description |
 |---------|-------------|
 | **Multi-Provider Access** | Use Gemini, GPT-5, Grok, Claude, Kimi, and more through one API |
-| **Automatic Load Balancing** | Smart rotation across 4+ Google accounts with cooldown |
+| **Session Management** | Tracks signed-in sessions, keeps requests on a stable session and fails over when one is unavailable |
 | **Status Bar Integration** | See current model with emoji icons (⚡💎🎭🎵) |
 | **Beautiful Dashboard** | Monitor accounts, usage, and switch models at `localhost:8080` |
 | **Auto-Start** | Proxy starts when extension is enabled (opt-in) |
@@ -118,7 +118,7 @@
 - **🔄 Smart Routing**: Extension dropdown Opus/Haiku/Default pass-through, Custom uses dashboard
 - **⚡ Agentic Fallback**: Chat-only models auto-switch to agentic models for file operations
 - **📊 Usage Tracking**: Per-model and per-account statistics
-- **🛡️ Rate Limit Recovery**: Automatically rotates to healthy accounts
+- **🛡️ Reliability**: Retries with backoff and routes around unavailable sessions
 
 ---
 
@@ -142,7 +142,7 @@ cd Antigravity-Claude-Code-Proxy/Antigravity-Claude-Code-Proxy
 npm install
 
 # Start the proxy (runs as persistent background service)
-pm2 start src/server.js --name antigravity-proxy
+pm2 start src/index.js --name antigravity-proxy
 pm2 save
 ```
 
@@ -227,7 +227,7 @@ Features:
 - **Account Monitor**: See all accounts, their status, and remaining quota
 - **Model Switcher**: Quick dropdown to change active model
 - **Usage Statistics**: Track requests per model
-- **Health Status**: Know when accounts are rate-limited
+- **Health Status**: See which sessions are healthy or need attention
 
 ---
 
