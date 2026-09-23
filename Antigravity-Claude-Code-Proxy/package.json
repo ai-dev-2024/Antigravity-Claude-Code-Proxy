@@ -27,7 +27,6 @@
     "format": "prettier --write src/",
     "format:check": "prettier --check src/",
     "test": "node tests/run-all.cjs",
-    "test:unit": "node --test tests/unit/",
     "test:signatures": "node tests/test-thinking-signatures.cjs",
     "test:multiturn": "node tests/test-multiturn-thinking-tools.cjs",
     "test:streaming": "node tests/test-multiturn-thinking-tools-streaming.cjs",
