@@ -27,6 +27,10 @@
 <h1 align="center">🚀 Antigravity Claude Code Proxy</h1>
 
 <p align="center">
+  Based on <a href="https://github.com/badrisnarayanan/antigravity-claude-proxy">antigravity-claude-proxy</a> by Badri Narayanan S (MIT License).
+</p>
+
+<p align="center">
   <strong>Use Claude Code CLI with Gemini, GPT-5, Grok, and 20+ AI models</strong>
   <br><br>
   <em>A production-ready multi-provider AI gateway with automatic load balancing,<br>
@@ -325,6 +329,8 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed history.
 ## 📜 License
 
 MIT License - See [LICENSE](LICENSE) for details.
+
+This project is built on [antigravity-claude-proxy](https://github.com/badrisnarayanan/antigravity-claude-proxy) by Badri Narayanan S, used under the MIT License. The original copyright notice is kept in [LICENSE](LICENSE).
 
 ---
 
