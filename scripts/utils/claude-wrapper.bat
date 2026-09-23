@@ -6,7 +6,7 @@
 netstat -an | findstr ":8080.*LISTENING" >nul 2>&1
 if %errorlevel% neq 0 (
     echo Starting Antigravity Proxy...
-    start /b wscript "C:\Users\Muhib\Desktop\Projects\Antigravity-Claude-Code-Proxy\start-proxy-hidden.vbs"
+    start /b wscript "%USERPROFILE%\Desktop\Projects\Antigravity-Claude-Code-Proxy\start-proxy-hidden.vbs"
     timeout /t 4 /nobreak >nul
     echo Proxy ready!
 )
