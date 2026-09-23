@@ -21,7 +21,7 @@ taskkill /f /im node.exe
 Run the account addition command:
 
 ```cmd
-cd "C:\Users\Muhib\Desktop\Projects\Antigravity-Claude-Code-Proxy\Antigravity-Claude-Code-Proxy"
+cd "C:\Users\YourUser\Desktop\Projects\Antigravity-Claude-Code-Proxy\Antigravity-Claude-Code-Proxy"
 npm run accounts:add
 ```
 
@@ -36,7 +36,7 @@ npm run accounts:add
 After closing the browser, you'll see:
 ```
 ✓ Successfully authenticated: [your-new-email@gmail.com]
-✓ Saved 1 account(s) to C:\Users\Muhib\.config\antigravity-proxy\accounts.json
+✓ Saved 1 account(s) to C:\Users\YourUser\.config\antigravity-proxy\accounts.json
 ```
 
 ### Step 5: Add More Accounts (Optional)
