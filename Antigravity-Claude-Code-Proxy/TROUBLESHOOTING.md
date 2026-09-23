@@ -133,6 +133,7 @@ This checks:
    - Look for "Antigravity" and ensure it has access
 
 4. Verify OAuth configuration:
+   - `GOOGLE_OAUTH_CLIENT_SECRET` is required (the proxy no longer ships one). If you see "GOOGLE_OAUTH_CLIENT_SECRET is not set", add it to `.env` (copy `.env.example`).
    - If using custom OAuth credentials, check `.env`:
      ```env
      GOOGLE_OAUTH_CLIENT_ID=your-client-id

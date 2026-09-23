@@ -260,11 +260,11 @@ export function isThinkingModel(modelName) {
     return false;
 }
 
-// Default OAuth credentials (can be overridden via environment variables)
-// Note: These are public OAuth credentials for the Antigravity integration.
-// For custom OAuth apps, set GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET
+// Default OAuth client ID (can be overridden via GOOGLE_OAUTH_CLIENT_ID).
+// The client secret is NOT stored in the repo: set GOOGLE_OAUTH_CLIENT_SECRET in the
+// environment (or .env). Google login and token refresh fail without it.
 const DEFAULT_OAUTH_CLIENT_ID = '1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com';
-const DEFAULT_OAUTH_CLIENT_SECRET = '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';
+const DEFAULT_OAUTH_CLIENT_SECRET = '';
 
 // Google OAuth configuration
 export const OAUTH_CONFIG = {

@@ -141,10 +141,15 @@ cd Antigravity-Claude-Code-Proxy/Antigravity-Claude-Code-Proxy
 # Install dependencies
 npm install
 
+# Create your .env and set GOOGLE_OAUTH_CLIENT_SECRET (required for Google login)
+cp .env.example .env
+
 # Start the proxy (runs as persistent background service)
 pm2 start src/index.js --name antigravity-proxy
 pm2 save
 ```
+
+> **Required:** the proxy no longer ships a Google OAuth client secret. Set `GOOGLE_OAUTH_CLIENT_SECRET` in `Antigravity-Claude-Code-Proxy/.env` (or your environment) to the secret for the OAuth client ID you use. Without it, adding accounts and refreshing tokens fail with a clear error. See `.env.example`.
 
 ### Configure Environment
 
