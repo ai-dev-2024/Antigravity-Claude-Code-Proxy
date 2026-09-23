@@ -12,13 +12,13 @@ function Start-AntigravityProxy {
     
     if (-not $proxyRunning) {
         Write-Host "Starting Antigravity proxy..." -ForegroundColor Cyan
-        Start-Process -WindowStyle Minimized -FilePath "cmd" -ArgumentList "/c cd /d C:\Users\Muhib\Desktop\Projects\Antigravity-Claude-Code-Proxy\Antigravity-Claude-Code-Proxy && npm start"
+        Start-Process -WindowStyle Minimized -FilePath "cmd" -ArgumentList "/c cd /d $env:USERPROFILE\Desktop\Projects\Antigravity-Claude-Code-Proxy\Antigravity-Claude-Code-Proxy && npm start"
         Start-Sleep -Seconds 2
     }
     
     if (-not $pythonRunning) {
         Write-Host "Starting Perplexity server..." -ForegroundColor Magenta
-        Start-Process -WindowStyle Minimized -FilePath "cmd" -ArgumentList "/c cd /d C:\Users\Muhib\Desktop\Projects\Antigravity-Claude-Code-Proxy\perplexity-openai-api-ref && python openai_server.py"
+        Start-Process -WindowStyle Minimized -FilePath "cmd" -ArgumentList "/c cd /d $env:USERPROFILE\Desktop\Projects\Antigravity-Claude-Code-Proxy\perplexity-openai-api-ref && python openai_server.py"
         Start-Sleep -Seconds 2
     }
     
