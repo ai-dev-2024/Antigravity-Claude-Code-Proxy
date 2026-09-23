@@ -18,7 +18,7 @@ echo.
 
 REM Step 2: Navigate to project directory
 echo [2/5] Navigating to project directory...
-cd /d "C:\Users\Muhib\Desktop\Projects\Antigravity-Claude-Code-Proxy\Antigravity-Claude-Code-Proxy"
+cd /d "%USERPROFILE%\Desktop\Projects\Antigravity-Claude-Code-Proxy\Antigravity-Claude-Code-Proxy"
 echo ✓ Current directory: %CD%
 echo.
 
