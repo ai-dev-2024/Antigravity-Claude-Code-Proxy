@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 
-const dbPath = 'C:/Users/Muhib/AppData/Roaming/Antigravity/User/globalStorage/state.vscdb';
+const dbPath = process.env.APPDATA + '/Antigravity/User/globalStorage/state.vscdb';
 const ENDPOINTS = [
     'https://daily-cloudcode-pa.sandbox.googleapis.com',
     'https://cloudcode-pa.googleapis.com'
