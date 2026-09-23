@@ -17,7 +17,7 @@ I've already configured the following for you:
 Open a Command Prompt as Administrator and navigate to the project:
 
 ```cmd
-cd "C:\Users\Muhib\Desktop\Projects\Antigravity-Claude-Code-Proxy\Antigravity-Claude-Code-Proxy"
+cd "C:\Users\YourUser\Desktop\Projects\Antigravity-Claude-Code-Proxy\Antigravity-Claude-Code-Proxy"
 ```
 
 **For each Google account you want to use:**
@@ -47,7 +47,7 @@ cd "C:\Users\Muhib\Desktop\Projects\Antigravity-Claude-Code-Proxy\Antigravity-Cl
 
 **Option 2: Using Command Prompt**
 ```cmd
-cd "C:\Users\Muhib\Desktop\Projects\Antigravity-Claude-Code-Proxy\Antigravity-Claude-Code-Proxy"
+cd "C:\Users\YourUser\Desktop\Projects\Antigravity-Claude-Code-Proxy\Antigravity-Claude-Code-Proxy"
 npm start
 ```
 
