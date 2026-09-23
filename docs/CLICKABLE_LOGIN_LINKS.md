@@ -22,7 +22,7 @@
 4. **Close browser**
 5. **Run completion command**:
    ```cmd
-   cd "C:\Users\Muhib\Desktop\Projects\Antigravity-Claude-Code-Proxy\Antigravity-Claude-Code-Proxy"
+   cd "C:\Users\YourUser\Desktop\Projects\Antigravity-Claude-Code-Proxy\Antigravity-Claude-Code-Proxy"
    npm run accounts:add
    ```
 
@@ -86,7 +86,7 @@ claude "Debug this error"
 - **Applied to**: All `claude` commands system-wide
 
 ### Account Configuration (Global)
-- **Location**: `C:\Users\Muhib\.config\antigravity-proxy\accounts.json`
+- **Location**: `C:\Users\YourUser\.config\antigravity-proxy\accounts.json`
 - **Applied to**: All proxy requests
 
 ---
@@ -99,7 +99,7 @@ claude "Debug this error"
 # Navigate to any folder
 # Use claude command
 
-cd C:\Users\Muhib\Desktop\MyProject
+cd C:\Users\YourUser\Desktop\MyProject
 claude "Help me build a website"
 
 cd D:\Work\OtherProject  
