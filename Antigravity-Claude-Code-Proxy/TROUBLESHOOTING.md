@@ -387,7 +387,7 @@ Expected response:
 
 ## Getting Help
 
-1. Check existing issues: https://github.com/badri-s2001/antigravity-claude-proxy/issues
+1. Check existing issues: https://github.com/muhib-karim/Antigravity-Claude-Code-Proxy/issues
 
 2. Run the doctor script and include output when reporting issues:
    ```bash
