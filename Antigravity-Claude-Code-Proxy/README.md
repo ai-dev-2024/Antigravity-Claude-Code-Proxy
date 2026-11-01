@@ -1,7 +1,7 @@
 ![Antigravity Claude Code Proxy Banner](docs/images/banner.png)
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-2.5.0-blue?style=for-the-badge" alt="Version 2.5.0">
+  <img src="https://img.shields.io/badge/Version-2.11.0-blue?style=for-the-badge" alt="Version 2.11.0">
   <img src="https://img.shields.io/badge/Claude_Code-Compatible-blueviolet?style=for-the-badge&logo=anthropic" alt="Claude Code Compatible">
   <img src="https://img.shields.io/badge/Antigravity-Powered-00D4AA?style=for-the-badge" alt="Antigravity Powered">
   <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="MIT License">
@@ -81,7 +81,7 @@
 | **Multi-Provider Access** | Use Gemini, GPT-5, Grok, Claude, Kimi, and more through one API |
 | **Session Management** | Tracks signed-in sessions, keeps requests on a stable session and fails over when one is unavailable |
 | **Status Bar Integration** | See current model with emoji icons (⚡💎🎭🎵) |
-| **Beautiful Dashboard** | Monitor accounts, usage, and switch models at `localhost:8080` |
+| **Beautiful Dashboard** | Monitor accounts, usage, and switch models at `localhost:8080/dashboard` |
 | **Auto-Start** | Proxy starts automatically when you open your IDE |
 | **Model Persistence** | Your selected model survives restarts |
 
@@ -147,8 +147,8 @@ claude
 |-------|-------|----------|
 | `gemini-3-flash` | `flash` | Fast tasks, simple commands |
 | `gemini-3-pro-high` | `pro` | Complex coding, deep analysis |
-| `claude-opus-4-5-thinking` | `opus` | Complex reasoning |
-| `claude-sonnet-4-5-thinking` | `sonnet` | Balanced performance |
+| `claude-opus-4-5-thinking` | `claude-opus` | Complex reasoning |
+| `claude-sonnet-4-5-thinking` | `claude-sonnet` | Balanced performance |
 
 ### 🔍 Search Models (Chat + Web Search)
 
@@ -232,7 +232,7 @@ Antigravity-Claude-Code-Proxy/
 │   └── images/            # Showcase images
 ├── SECURITY.md            # Security policy
 ├── CHANGELOG.md           # Version history
-└── package.json           # v2.5.0
+└── package.json           # v2.11.0
 ```
 
 ---
