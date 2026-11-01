@@ -16,14 +16,14 @@ This setup allows you to use multiple Google AI accounts with Claude Code CLI, m
 ```bash
 # Run this for each Google account you want to use
 # Double-click ADD_ACCOUNT.bat or run:
-cd antigravity-claude-proxy-main
+cd Antigravity-Claude-Code-Proxy/Antigravity-Claude-Code-Proxy
 npm run accounts:add
 ```
 
 ### 2. Start the Proxy Server
 ```bash
 # Double-click START_PROXY.bat or run:
-cd antigravity-claude-proxy-main
+cd Antigravity-Claude-Code-Proxy/Antigravity-Claude-Code-Proxy
 npm start
 ```
 
