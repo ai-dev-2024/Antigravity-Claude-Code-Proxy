@@ -72,7 +72,7 @@ claude
 
 1. **Open VSCode**
 
-2. **Open integrated terminal**: Press `Ctrl + ` (backtick key)
+2. **Open integrated terminal**: Press ``Ctrl + ` `` (backtick key)
 
 3. **Check environment variables**:
    ```bash
@@ -157,7 +157,7 @@ claude
 Once you've added your accounts and started the proxy:
 
 1. **Open VSCode**
-2. **Open integrated terminal** (`Ctrl + `)
+2. **Open integrated terminal** (``Ctrl + ` ``)
 3. **Run**: `claude`
 4. **Start using** Claude Code through the proxy.
 
