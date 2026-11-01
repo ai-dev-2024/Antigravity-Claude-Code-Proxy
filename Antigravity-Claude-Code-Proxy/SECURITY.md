@@ -32,8 +32,8 @@ The following sensitive files are automatically excluded from version control:
 3. **Updates**: Keep dependencies updated with `npm update`
 
 ### Network Security
-- The proxy binds to `0.0.0.0:8080` by default
-- For production, consider binding to `127.0.0.1` only
+- The proxy binds to `127.0.0.1:8080` by default (`HOST` overrides it)
+- The Docker image sets `HOST=0.0.0.0`; publish its port on `127.0.0.1` only
 - Use a reverse proxy (nginx/caddy) if external access is needed
 
 ## Reporting a Vulnerability
