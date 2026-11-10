@@ -45,7 +45,7 @@ Antigravity Claude Code Proxy is a local Node.js/Express gateway. It speaks the 
 - **CLI** (`bin/cli.js`): start the server and manage accounts (`add`, `list`, `remove`, `verify`, `clear`). `scripts/doctor.js` runs a setup self-check.
 - **Resilient upstream calls** (v2.11.0): exponential backoff with jitter, `Retry-After` honoured, bounded timeouts, no replay of a started stream, cancellation when the client disconnects, and graceful shutdown that drains open streams.
 - **Operable**: `/livez`, `/readyz` and Prometheus `/metrics`; a multi-stage Docker image that runs as a non-root user.
-- **Verified offline**: a 41-fixture Anthropic conformance suite plus unit and integration tests (406 in total) run against a mock upstream on every push.
+- **Verified offline**: a 41-fixture Anthropic conformance suite plus unit and integration tests (409 in total) run against a mock upstream on every push.
 - **Status bar extension** for VS Code-based editors, [published on Open VSX](https://open-vsx.org/extension/ai-dev-2024/claude-proxy-status). It shows the active model and quotas and allows one-click switching.
 
 > **Verification scope.** CI runs lint, format and type checks, the offline suites under an 80% coverage gate on Node 22 and 24 against mocked upstreams, a Docker build and smoke run, CodeQL, secret scanning and a runtime dependency audit. Those checks do not establish current access to every remote model or account. Provider names and model identifiers can change; verify the configured provider before relying on it.
@@ -64,7 +64,7 @@ An [interactive, code-linked sequence diagram](https://muhib-karim.github.io/Ant
 <summary>Terminal session, dashboard and status bar screenshots</summary>
 
 <p align="center">
-  <img src="docs/demo-terminal.svg" alt="Terminal session: CLI help and the offline test run" width="760"><br><em>CLI help and the offline test run (recorded at v2.10.0, when the suite had 50 tests; it now has 406)</em><br><br>
+  <img src="docs/demo-terminal.svg" alt="Terminal session: CLI help and the offline test run" width="760"><br><em>CLI help and the offline test run (recorded at v2.10.0, when the suite had 50 tests; it now has 409)</em><br><br>
   <img src="docs/images/dashboard.png" alt="Dashboard" width="700"><br><em>Web dashboard</em><br><br>
   <img src="docs/images/quota-popup.png" alt="Quota popup" width="600"><br><em>Quota popup in the status bar extension</em><br><br>
   <img src="docs/images/model-switcher.png" alt="Model switcher" width="400"><br><em>Model switcher</em><br><br>
@@ -311,7 +311,7 @@ npm run test:coverage   # all offline suites under the c8 gate
 npm audit --omit=dev    # runtime dependencies
 ```
 
-`npm test` runs 406 tests (11 of them `todo` placeholders for the v2.12 roadmap) one file at a time with Node's built-in runner. It needs no accounts, keys or network:
+`npm test` runs 409 tests (11 of them `todo` placeholders for the v2.12 roadmap) one file at a time with Node's built-in runner. It needs no accounts, keys or network:
 
 | Suite | Folder | What it covers |
 |---|---|---|

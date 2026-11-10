@@ -144,6 +144,28 @@ describe('AccountManager cooldown and rotation', () => {
         assert.equal(m.getStatus().rateLimited, 0);
     });
 
+    it('resetAllRateLimits keeps a token-refresh cooldown until it runs out', async () => {
+        const m = await managerWith();
+        m.markRateLimited('a@example.test', LONG, { tokenRefresh: true });
+        m.markRateLimited('b@example.test', 30, { tokenRefresh: true });
+        m.markRateLimited('c@example.test', LONG);
+        m.resetAllRateLimits();
+        assert.deepEqual(m.getAvailableAccounts().map(email), ['c@example.test'], 'only the quota cooldown is reset');
+
+        await sleep(60); // b's short cooldown has run out; a's has not
+        m.markRateLimited('c@example.test', LONG);
+        m.resetAllRateLimits();
+        assert.deepEqual(m.getAvailableAccounts().map(email), ['b@example.test', 'c@example.test']);
+
+        // A later quota cooldown on the same account is an ordinary one again
+        m.markRateLimited('b@example.test', LONG);
+        m.resetAllRateLimits();
+        assert.equal(
+            m.getAvailableAccounts().some(a => a.email === 'b@example.test'),
+            true
+        );
+    });
+
     it('ignores unknown accounts', async () => {
         const m = await managerWith();
         m.markRateLimited('nobody@example.test', LONG);

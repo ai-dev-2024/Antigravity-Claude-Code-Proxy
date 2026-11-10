@@ -201,7 +201,12 @@ export class AccountManager {
      * @returns {void}
      */
     resetAllRateLimits() {
+        const now = Date.now();
         for (const account of this.#accounts) {
+            // A cooldown that follows a failed token refresh is kept until it runs out: an
+            // optimistic retry on every request would hammer Google's token endpoint
+            if (account.tokenRefreshCooldown && account.rateLimitResetTime > now) continue;
+            account.tokenRefreshCooldown = false;
             account.isRateLimited = false;
             // distinct from "clearing" expired limits, we blindly reset here
             // we keep the time? User said "clear isRateLimited value, and rateLimitResetTime"
@@ -355,12 +360,15 @@ export class AccountManager {
      * Mark an account as rate-limited
      * @param {string} email - Email of the account to mark
      * @param {number|null} resetMs - Time in ms until rate limit resets (optional)
+     * @param {{tokenRefresh?: boolean}} [options] - tokenRefresh: the cooldown follows a failed
+     *   token refresh, so resetAllRateLimits() leaves it in place until it runs out
      */
-    markRateLimited(email, resetMs = null) {
+    markRateLimited(email, resetMs = null, { tokenRefresh = false } = {}) {
         const account = this.#accounts.find(a => a.email === email);
         if (!account) return;
 
         account.isRateLimited = true;
+        account.tokenRefreshCooldown = tokenRefresh;
         const cooldownMs = resetMs || this.#settings.cooldownDurationMs || DEFAULT_COOLDOWN_MS;
         account.rateLimitResetTime = Date.now() + cooldownMs;
 
@@ -466,7 +474,7 @@ export class AccountManager {
                 // so park the account briefly and let the caller try the next one
                 const unreachable = !String(error.message).startsWith('Token refresh failed');
                 if (unreachable || error.transient === true) {
-                    this.markRateLimited(account.email, TRANSIENT_REFRESH_COOLDOWN_MS);
+                    this.markRateLimited(account.email, TRANSIENT_REFRESH_COOLDOWN_MS, { tokenRefresh: true });
                     // Keep "Token refresh failed" out of this message: isAuthError() matches on it
                     const reason = unreachable ? `could not reach Google: ${error.message}` : 'got a temporary error from Google';
                     throw new RateLimitError(`Token refresh for ${account.email} ${reason}`, TRANSIENT_REFRESH_COOLDOWN_MS, account.email);

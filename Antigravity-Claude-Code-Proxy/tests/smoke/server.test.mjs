@@ -433,6 +433,52 @@ for (const { status, outcome, expected } of [
     });
 }
 
+// While an account is parked after a failed token refresh, later requests must not retry the refresh.
+// POST /v1/messages resets rate limits optimistically when the whole pool is limited; that reset used
+// to clear this cooldown too, so every request hit Google's token endpoint again.
+for (const { cause, fixture, env } of [
+    { cause: 'a 503 from Google', fixture: 'google-token-status.mjs', env: { TEST_GOOGLE_TOKEN_STATUS: '503' } },
+    { cause: 'an unreachable token endpoint', fixture: 'google-token-unreachable.mjs', env: {} }
+]) {
+    describe(`token refresh cooldown after ${cause}`, () => {
+        let proxy;
+        const preload = pathToFileURL(join(PACKAGE_ROOT, 'tests', 'smoke', 'fixtures', fixture)).href;
+
+        before(async () => {
+            proxy = await startProxy({
+                accounts: [{ email: 'oauth-account', source: 'oauth', refreshToken: 'mock-refresh-token', projectId: FAKE_PROJECT_ID }],
+                // Fail fast instead of waiting out the cooldown inside the request
+                env: { NODE_OPTIONS: `--import=${preload}`, AUTO_WAIT_FOR_RATE_LIMIT: 'false', ...env }
+            });
+        });
+
+        after(async () => {
+            await proxy?.stop();
+        });
+
+        it('survives the optimistic reset: the refresh is tried once, not once per request', async () => {
+            const send = () => fetch(`${proxy.baseUrl}/v1/messages`, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ model: 'gemini-3-flash', max_tokens: 64, messages: [{ role: 'user', content: 'Say hello' }] })
+            });
+
+            const responses = [await send(), await send(), await send()];
+            await new Promise(resolve => setTimeout(resolve, 250)); // let the proxy's log output arrive
+
+            const refreshAttempts = proxy.logs().split('Failed to refresh token for oauth-account').length - 1;
+            assert.equal(refreshAttempts, 1, proxy.logs());
+            for (const res of responses) {
+                assert.equal(res.status, 400, 'an exhausted pool answers 400 by default');
+                assert.ok(Number(res.headers.get('retry-after')) > 0, 'the remaining cooldown is sent as retry-after');
+            }
+            const health = await (await fetch(`${proxy.baseUrl}/health`)).json();
+            assert.equal(health.invalid, 0, JSON.stringify(health));
+            assert.equal(health.rateLimited, 1, JSON.stringify(health));
+        });
+    });
+}
+
 describe('listing models with several accounts', () => {
     let upstream;
     let proxy;
