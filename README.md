@@ -45,7 +45,7 @@ Antigravity Claude Code Proxy is a local Node.js/Express gateway. It speaks the 
 - **CLI** (`bin/cli.js`): start the server and manage accounts (`add`, `list`, `remove`, `verify`, `clear`). `scripts/doctor.js` runs a setup self-check.
 - **Resilient upstream calls** (v2.11.0): exponential backoff with jitter, `Retry-After` honoured, bounded timeouts, no replay of a started stream, cancellation when the client disconnects, and graceful shutdown that drains open streams.
 - **Operable**: `/livez`, `/readyz` and Prometheus `/metrics`; a multi-stage Docker image that runs as a non-root user.
-- **Verified offline**: a 37-fixture Anthropic conformance suite plus unit and integration tests (222 in total) run against a mock upstream on every push.
+- **Verified offline**: a 41-fixture Anthropic conformance suite plus unit and integration tests (406 in total) run against a mock upstream on every push.
 - **Status bar extension** for VS Code-based editors, [published on Open VSX](https://open-vsx.org/extension/ai-dev-2024/claude-proxy-status). It shows the active model and quotas and allows one-click switching.
 
 > **Verification scope.** CI runs lint, format and type checks, the offline suites under an 80% coverage gate on Node 22 and 24 against mocked upstreams, a Docker build and smoke run, CodeQL, secret scanning and a runtime dependency audit. Those checks do not establish current access to every remote model or account. Provider names and model identifiers can change; verify the configured provider before relying on it.
@@ -64,7 +64,7 @@ An [interactive, code-linked sequence diagram](https://muhib-karim.github.io/Ant
 <summary>Terminal session, dashboard and status bar screenshots</summary>
 
 <p align="center">
-  <img src="docs/demo-terminal.svg" alt="Terminal session: CLI help and the offline test run" width="760"><br><em>CLI help and the offline test run (recorded at v2.10.0, when the suite had 50 tests; it now has 222)</em><br><br>
+  <img src="docs/demo-terminal.svg" alt="Terminal session: CLI help and the offline test run" width="760"><br><em>CLI help and the offline test run (recorded at v2.10.0, when the suite had 50 tests; it now has 406)</em><br><br>
   <img src="docs/images/dashboard.png" alt="Dashboard" width="700"><br><em>Web dashboard</em><br><br>
   <img src="docs/images/quota-popup.png" alt="Quota popup" width="600"><br><em>Quota popup in the status bar extension</em><br><br>
   <img src="docs/images/model-switcher.png" alt="Model switcher" width="400"><br><em>Model switcher</em><br><br>
@@ -95,13 +95,13 @@ Everything below was added in this repository on top of that base (`C` = commit,
 
 | Area | Added | Where |
 |---|---|---|
-| Conformance | 30 synthetic JSON fixtures replayed against the real proxy and a scripted mock upstream: request/response mapping, SSE event order, tool_use/tool_result round-trips, system prompts, stop reasons, usage fields, 4xx/5xx/429 mapping with `retry-after`, timeouts, validation, header allow-list | [`test/conformance/`](Antigravity-Claude-Code-Proxy/test/conformance/messages.test.mjs), [`test/fixtures/conformance/`](Antigravity-Claude-Code-Proxy/test/fixtures/conformance/), [C 174caa1](https://github.com/muhib-karim/Antigravity-Claude-Code-Proxy/commit/174caa1) |
+| Conformance | 37 synthetic JSON fixtures replayed against the real proxy and a scripted mock upstream: request/response mapping, SSE event order, tool_use/tool_result round-trips, system prompts, stop reasons, usage fields, 4xx/5xx/429 mapping with `retry-after`, timeouts, validation, header allow-list | [`test/conformance/`](Antigravity-Claude-Code-Proxy/test/conformance/messages.test.mjs), [`test/fixtures/conformance/`](Antigravity-Claude-Code-Proxy/test/fixtures/conformance/), [C 174caa1](https://github.com/muhib-karim/Antigravity-Claude-Code-Proxy/commit/174caa1) |
 | Bugs found by the suite | Array `system` prompts (what Claude Code sends) were sent upstream as `"[object Object]"`; `stop_sequences` were dropped; `tool_result` was named after the tool id instead of the tool; tool-schema hints were duplicated and `const` was passed to Gemini; a 401 ended in "Max retries exceeded" | [C 89125c3](https://github.com/muhib-karim/Antigravity-Claude-Code-Proxy/commit/89125c3), [C 4dfe982](https://github.com/muhib-karim/Antigravity-Claude-Code-Proxy/commit/4dfe982), [C ef43636](https://github.com/muhib-karim/Antigravity-Claude-Code-Proxy/commit/ef43636) |
 | Resilience | Exponential backoff with full jitter, `Retry-After` (seconds or HTTP date) honoured, up to `UPSTREAM_RETRIES` 5xx/timeout/network retries per request (timeouts retried at most once) that never replay a started stream, deadlines (504) and client-disconnect cancellation, streaming errors before the first event returned with their real status and `retry-after`, graceful shutdown that drains SSE streams | [`src/resilience/backoff.js`](Antigravity-Claude-Code-Proxy/src/resilience/backoff.js), [`src/http/shutdown.js`](Antigravity-Claude-Code-Proxy/src/http/shutdown.js), [C 6c1739e](https://github.com/muhib-karim/Antigravity-Claude-Code-Proxy/commit/6c1739e), [C 8b5ca16](https://github.com/muhib-karim/Antigravity-Claude-Code-Proxy/commit/8b5ca16) |
 | Error mapping | Anthropic error types for 400/401/403/404/413/429/502/504/529 with `retry-after` | [`src/http/error-mapper.js`](Antigravity-Claude-Code-Proxy/src/http/error-mapper.js), [C 7e22f23](https://github.com/muhib-karim/Antigravity-Claude-Code-Proxy/commit/7e22f23) |
 | Hardening | Request validation with one clear 400, JSON errors for malformed/oversized bodies (413), routing-header allow-list, client credentials never forwarded upstream, secret redaction for console and log file, helmet-style headers, per-client rate limit, linear-time model-switch regexes (ReDoS), no API-key fragments in logs | [`src/http/validation.js`](Antigravity-Claude-Code-Proxy/src/http/validation.js), [`src/utils/redact.js`](Antigravity-Claude-Code-Proxy/src/utils/redact.js), [`src/http/security.js`](Antigravity-Claude-Code-Proxy/src/http/security.js), [C a091d61](https://github.com/muhib-karim/Antigravity-Claude-Code-Proxy/commit/a091d61) |
 | Operability | `/livez`, `/readyz`, `/metrics` (Prometheus text: requests, latency, upstream retries, account states) | [`src/http/metrics.js`](Antigravity-Claude-Code-Proxy/src/http/metrics.js), [C 7890434](https://github.com/muhib-karim/Antigravity-Claude-Code-Proxy/commit/7890434) |
-| Tests | Unit tests for backoff, error mapping, redaction, validation, metrics, shutdown, account cooldown/rotation and schema cleaning; integration tests for redaction, probes, rate limiting, shutdown and management endpoints (192 offline tests in total) | [`test/unit/`](Antigravity-Claude-Code-Proxy/test/unit/), [`test/integration/`](Antigravity-Claude-Code-Proxy/test/integration/) |
+| Tests | Unit tests for backoff, error mapping, redaction, validation, metrics, shutdown, account cooldown/rotation and schema cleaning; integration tests for redaction, probes, rate limiting, shutdown and management endpoints (222 offline tests in total) | [`test/unit/`](Antigravity-Claude-Code-Proxy/test/unit/), [`test/integration/`](Antigravity-Claude-Code-Proxy/test/integration/) |
 | Quality gates | `// @ts-check` + `tsc --noEmit`, ESLint and Prettier checks, c8 coverage gate (80% lines) on the core request path, CodeQL, Dependabot, CI on Node 22 and 24 | [`.github/workflows/ci.yml`](.github/workflows/ci.yml), [`.github/workflows/codeql.yml`](.github/workflows/codeql.yml), [`.c8rc.json`](Antigravity-Claude-Code-Proxy/.c8rc.json), [C 1e573dd](https://github.com/muhib-karim/Antigravity-Claude-Code-Proxy/commit/1e573dd) |
 
 ## Quick start
@@ -304,18 +304,18 @@ Run from the package folder. These are the same steps CI runs ([`.github/workflo
 ```bash
 cd Antigravity-Claude-Code-Proxy
 PUPPETEER_SKIP_DOWNLOAD=true npm ci
-npm run lint            # ESLint: errors fail the build
+npm run lint            # ESLint: errors fail the build, warnings are capped at the current count
 npm run format:check    # Prettier on new and maintained files
 npm run typecheck       # tsc --noEmit over the // @ts-check modules
 npm run test:coverage   # all offline suites under the c8 gate
 npm audit --omit=dev    # runtime dependencies
 ```
 
-`npm test` runs 222 tests one file at a time with Node's built-in runner. It needs no accounts, keys or network:
+`npm test` runs 406 tests (11 of them `todo` placeholders for the v2.12 roadmap) one file at a time with Node's built-in runner. It needs no accounts, keys or network:
 
 | Suite | Folder | What it covers |
 |---|---|---|
-| Conformance | `test/conformance/`, fixtures in `test/fixtures/conformance/` | 37 synthetic JSON fixtures replayed against the real proxy and a scripted mock upstream: request/response mapping, SSE event order, tool_use and tool_result round-trips, system prompts, stop reasons, usage fields, thinking models, 4xx/5xx/429 mapping with `retry-after`, retries, timeouts, validation, header allow-list |
+| Conformance | `test/conformance/`, fixtures in `test/fixtures/conformance/` | 41 synthetic JSON fixtures replayed against the real proxy and a scripted mock upstream: request/response mapping, SSE event order, tool_use and tool_result round-trips, system prompts, stop reasons, usage fields, thinking models, 4xx/5xx/429 mapping with `retry-after`, retries, timeouts, validation, header allow-list |
 | Integration | `test/integration/` | Secret redaction in logs, `/livez` `/readyz` `/metrics`, security headers, rate limiting, graceful shutdown with an open stream, management endpoints |
 | Unit | `test/unit/` | Backoff and retry, error mapping, redaction, validation, metrics, shutdown, account cooldown and rotation, schema cleaning, converters, sign-in URL, model-switch parsing |
 | Smoke | `tests/smoke/` | The original offline suite: server, CLI, converters, thinking utilities, account persistence |
