@@ -4,16 +4,17 @@
  * "/model thinking", "switch to grok", "use the pro model", "change model to flash".
  *
  * The text is user-controlled, so every pattern is unambiguous (no adjacent
- * quantifiers that can match the same characters) and runs in linear time.
+ * quantifiers that can match the same characters) and runs in linear time. The verbs
+ * must start a word: "because pro" or "reuse fast" is not a request to switch.
  */
 
 const SWITCH_PATTERNS = [
     // Explicit command: "/model thinking"
     /^\/model\s+(\w[-\w]*)/i,
     // "switch to X", "use the X model", "change model to X", "set to model X"
-    /(?:switch|change|use|set)\s+(?:(?:to|the)\s+)?(?:model\s+)?(?:to\s+)?(\w[-\w]*)/i,
+    /\b(?:switch|change|use|set)\s+(?:(?:to|the)\s+)?(?:model\s+)?(?:to\s+)?(\w[-\w]*)/i,
     // "model X", "switch X"
-    /(?:model|switch)\s+(?:to\s+)?(\w[-\w]*)/i
+    /\b(?:model|switch)\s+(?:to\s+)?(\w[-\w]*)/i
 ];
 
 /**

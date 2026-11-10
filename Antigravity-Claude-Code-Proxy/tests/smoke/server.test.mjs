@@ -382,3 +382,150 @@ describe('account rotation when a token refresh cannot reach Google', () => {
         assert.equal(health.rateLimited, 1, 'the unreachable account is only parked for a short cooldown');
     });
 });
+
+// Only an invalid_grant answer rejects the account's refresh token and means it has to be
+// re-authenticated. Everything else says nothing about the account: 5xx and 429 are temporary, and
+// other OAuth errors (RFC 6749 section 5.2) point at the client configuration, e.g. a wrong
+// GOOGLE_OAUTH_CLIENT_SECRET, which must not invalidate every account.
+const PARKED = { outcome: 'parks the account for a short cooldown', expected: { invalid: 0, rateLimited: 1 } };
+for (const { status, error, outcome, expected } of [
+    { status: 503, ...PARKED },
+    { status: 429, ...PARKED },
+    { status: 400, error: 'invalid_grant', outcome: 'marks the account invalid', expected: { invalid: 1, rateLimited: 0 } },
+    { status: 400, error: 'invalid_client', ...PARKED },
+    { status: 401, error: 'unauthorized_client', ...PARKED },
+    { status: 400, ...PARKED } // a body that is not an OAuth error response
+]) {
+    describe(`account rotation when a token refresh gets HTTP ${status} ${error ?? '(no OAuth error body)'} from Google`, () => {
+        let upstream;
+        let proxy;
+        const preload = pathToFileURL(join(PACKAGE_ROOT, 'tests', 'smoke', 'fixtures', 'google-token-status.mjs')).href;
+
+        before(async () => {
+            upstream = await startMockUpstream('hello from the second account');
+            proxy = await startProxy({
+                upstreamUrl: upstream.url,
+                accounts: [
+                    { email: 'oauth-account', source: 'oauth', refreshToken: 'mock-refresh-token', projectId: FAKE_PROJECT_ID },
+                    { email: 'manual-account', source: 'manual', apiKey: FAKE_ACCESS_TOKEN, projectId: FAKE_PROJECT_ID }
+                ],
+                env: {
+                    NODE_OPTIONS: `--import=${preload}`,
+                    TEST_GOOGLE_TOKEN_STATUS: String(status),
+                    ...(error ? { TEST_GOOGLE_TOKEN_ERROR: error } : {})
+                }
+            });
+        });
+
+        after(async () => {
+            await proxy?.stop();
+            await upstream?.close();
+        });
+
+        it(`falls through to the next account and ${outcome}`, async () => {
+            const res = await fetch(`${proxy.baseUrl}/v1/messages`, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({
+                    model: 'gemini-3-flash',
+                    max_tokens: 64,
+                    messages: [{ role: 'user', content: 'Say hello' }]
+                })
+            });
+            assert.equal(res.status, 200, proxy.logs());
+            const body = await res.json();
+            assert.equal(body.content.filter(b => b.type === 'text').map(b => b.text).join(''), 'hello from the second account');
+
+            const health = await (await fetch(`${proxy.baseUrl}/health`)).json();
+            assert.equal(health.invalid, expected.invalid, JSON.stringify(health));
+            assert.equal(health.rateLimited, expected.rateLimited, JSON.stringify(health));
+        });
+    });
+}
+
+// While an account is parked after a failed token refresh, later requests must not retry the refresh.
+// POST /v1/messages resets rate limits optimistically when the whole pool is limited; that reset used
+// to clear this cooldown too, so every request hit Google's token endpoint again.
+for (const { cause, fixture, env } of [
+    { cause: 'a 503 from Google', fixture: 'google-token-status.mjs', env: { TEST_GOOGLE_TOKEN_STATUS: '503' } },
+    { cause: 'an unreachable token endpoint', fixture: 'google-token-unreachable.mjs', env: {} }
+]) {
+    describe(`token refresh cooldown after ${cause}`, () => {
+        let proxy;
+        const preload = pathToFileURL(join(PACKAGE_ROOT, 'tests', 'smoke', 'fixtures', fixture)).href;
+
+        before(async () => {
+            proxy = await startProxy({
+                accounts: [{ email: 'oauth-account', source: 'oauth', refreshToken: 'mock-refresh-token', projectId: FAKE_PROJECT_ID }],
+                // Fail fast instead of waiting out the cooldown inside the request
+                env: { NODE_OPTIONS: `--import=${preload}`, AUTO_WAIT_FOR_RATE_LIMIT: 'false', ...env }
+            });
+        });
+
+        after(async () => {
+            await proxy?.stop();
+        });
+
+        it('survives the optimistic reset: the refresh is tried once, not once per request', async () => {
+            const send = () => fetch(`${proxy.baseUrl}/v1/messages`, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ model: 'gemini-3-flash', max_tokens: 64, messages: [{ role: 'user', content: 'Say hello' }] })
+            });
+
+            const responses = [await send(), await send(), await send()];
+            await new Promise(resolve => setTimeout(resolve, 250)); // let the proxy's log output arrive
+
+            const refreshAttempts = proxy.logs().split('Failed to refresh token for oauth-account').length - 1;
+            assert.equal(refreshAttempts, 1, proxy.logs());
+            for (const res of responses) {
+                assert.equal(res.status, 400, 'an exhausted pool answers 400 by default');
+                assert.ok(Number(res.headers.get('retry-after')) > 0, 'the remaining cooldown is sent as retry-after');
+            }
+            const health = await (await fetch(`${proxy.baseUrl}/health`)).json();
+            assert.equal(health.invalid, 0, JSON.stringify(health));
+            assert.equal(health.rateLimited, 1, JSON.stringify(health));
+        });
+    });
+}
+
+describe('listing models with several accounts', () => {
+    let upstream;
+    let proxy;
+
+    const sendMessage = () => fetch(`${proxy.baseUrl}/v1/messages`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ model: 'gemini-3-flash', max_tokens: 64, messages: [{ role: 'user', content: 'Say hello' }] })
+    });
+
+    before(async () => {
+        upstream = await startMockUpstream(REPLY);
+        proxy = await startProxy({
+            upstreamUrl: upstream.url,
+            accounts: [
+                { email: 'first-account', source: 'manual', apiKey: 'key-a', projectId: FAKE_PROJECT_ID },
+                { email: 'second-account', source: 'manual', apiKey: 'key-b', projectId: FAKE_PROJECT_ID }
+            ]
+        });
+    });
+
+    after(async () => {
+        await proxy?.stop();
+        await upstream?.close();
+    });
+
+    it('GET /v1/models does not move requests to another account', async () => {
+        assert.equal((await sendMessage()).status, 200, proxy.logs());
+        // One listing only: with two accounts a second listing would rotate back and hide a rotation
+        assert.equal((await fetch(`${proxy.baseUrl}/v1/models`)).status, 200);
+        assert.equal((await sendMessage()).status, 200, proxy.logs());
+
+        const calls = upstream.requests.map(r => `${r.url.split('?')[0]} ${r.headers.authorization}`);
+        assert.deepEqual(calls, [
+            '/v1internal:generateContent Bearer key-a',
+            '/v1internal:fetchAvailableModels Bearer key-a',
+            '/v1internal:generateContent Bearer key-a'
+        ]);
+    });
+});

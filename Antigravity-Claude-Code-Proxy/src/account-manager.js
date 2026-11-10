@@ -142,12 +142,15 @@ export class AccountManager {
     }
 
     /**
-     * Check if all accounts are rate-limited
-     * @returns {boolean} True if all accounts are rate-limited
+     * Check if every usable account is rate-limited. Invalid accounts cannot serve requests
+     * either way, so they are left out; a pool with only invalid accounts is not rate-limited
+     * (there is no cooldown to wait for).
+     * @returns {boolean} True if all usable accounts are rate-limited (or the pool is empty)
      */
     isAllRateLimited() {
         if (this.#accounts.length === 0) return true;
-        return this.#accounts.every(acc => acc.isRateLimited);
+        const usable = this.#accounts.filter(acc => !acc.isInvalid);
+        return usable.length > 0 && usable.every(acc => acc.isRateLimited);
     }
 
     /**
@@ -198,7 +201,12 @@ export class AccountManager {
      * @returns {void}
      */
     resetAllRateLimits() {
+        const now = Date.now();
         for (const account of this.#accounts) {
+            // A cooldown that follows a failed token refresh is kept until it runs out: an
+            // optimistic retry on every request would hammer Google's token endpoint
+            if (account.tokenRefreshCooldown && account.rateLimitResetTime > now) continue;
+            account.tokenRefreshCooldown = false;
             account.isRateLimited = false;
             // distinct from "clearing" expired limits, we blindly reset here
             // we keep the time? User said "clear isRateLimited value, and rateLimitResetTime"
@@ -352,12 +360,15 @@ export class AccountManager {
      * Mark an account as rate-limited
      * @param {string} email - Email of the account to mark
      * @param {number|null} resetMs - Time in ms until rate limit resets (optional)
+     * @param {{tokenRefresh?: boolean}} [options] - tokenRefresh: the cooldown follows a failed
+     *   token refresh, so resetAllRateLimits() leaves it in place until it runs out
      */
-    markRateLimited(email, resetMs = null) {
+    markRateLimited(email, resetMs = null, { tokenRefresh = false } = {}) {
         const account = this.#accounts.find(a => a.email === email);
         if (!account) return;
 
         account.isRateLimited = true;
+        account.tokenRefreshCooldown = tokenRefresh;
         const cooldownMs = resetMs || this.#settings.cooldownDurationMs || DEFAULT_COOLDOWN_MS;
         account.rateLimitResetTime = Date.now() + cooldownMs;
 
@@ -410,7 +421,8 @@ export class AccountManager {
         let soonestAccount = null;
 
         for (const account of this.#accounts) {
-            if (account.rateLimitResetTime) {
+            // An invalid account stays unusable after its cooldown, so it is not worth waiting for
+            if (!account.isInvalid && account.rateLimitResetTime) {
                 const wait = account.rateLimitResetTime - now;
                 if (wait > 0 && wait < minWait) {
                     minWait = wait;
@@ -456,12 +468,16 @@ export class AccountManager {
                 console.log(`[AccountManager] Refreshed OAuth token for: ${account.email}`);
             } catch (error) {
                 console.error(`[AccountManager] Failed to refresh token for ${account.email}:`, error.message);
-                // Only a refresh rejected by Google means the credentials need re-auth;
-                // network failures (fetch throws before any response) are transient,
-                // so park the account briefly and let the caller try the next one
-                if (!String(error.message).startsWith('Token refresh failed')) {
-                    this.markRateLimited(account.email, TRANSIENT_REFRESH_COOLDOWN_MS);
-                    throw new RateLimitError(`Token refresh for ${account.email} could not reach Google: ${error.message}`, TRANSIENT_REFRESH_COOLDOWN_MS, account.email);
+                // Only an invalid_grant answer from Google means the credentials need re-auth.
+                // Network failures (fetch throws before any response) and every other failed
+                // refresh (5xx, 429, other OAuth errors such as invalid_client: error.transient)
+                // are not a verdict on the account, so park it briefly and let the caller try the next one
+                const unreachable = !String(error.message).startsWith('Token refresh failed');
+                if (unreachable || error.transient === true) {
+                    this.markRateLimited(account.email, TRANSIENT_REFRESH_COOLDOWN_MS, { tokenRefresh: true });
+                    // Keep "Token refresh failed" out of this message: isAuthError() matches on it
+                    const reason = unreachable ? `could not reach Google: ${error.message}` : 'failed without Google rejecting the account';
+                    throw new RateLimitError(`Token refresh for ${account.email} ${reason}`, TRANSIENT_REFRESH_COOLDOWN_MS, account.email);
                 }
                 this.markInvalid(account.email, error.message);
                 throw new Error(`AUTH_INVALID: ${account.email}: ${error.message}`, { cause: error });

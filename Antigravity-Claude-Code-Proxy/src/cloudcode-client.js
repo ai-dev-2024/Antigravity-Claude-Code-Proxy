@@ -598,11 +598,12 @@ async function parseThinkingSSEResponse(response, originalModel) {
 
     while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
 
-        buffer += decoder.decode(value, { stream: true });
+        // At the end of the stream, flush the decoder and treat what is left as a complete
+        // line: the last event is not always followed by a newline
+        buffer += done ? decoder.decode() : decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+        buffer = done ? '' : lines.pop() || '';
 
         for (const line of lines) {
             if (!line.startsWith('data:')) continue;
@@ -645,6 +646,8 @@ async function parseThinkingSSEResponse(response, originalModel) {
                 console.log('[CloudCode] SSE parse warning:', e.message, 'Raw:', jsonText.slice(0, 100));
             }
         }
+
+        if (done) break;
     }
 
     flushThinking();
@@ -900,11 +903,12 @@ async function* streamSSEResponse(response, originalModel) {
 
     while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
 
-        buffer += decoder.decode(value, { stream: true });
+        // At the end of the stream, flush the decoder and treat what is left as a complete
+        // line: the last event is not always followed by a newline
+        buffer += done ? decoder.decode() : decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+        buffer = done ? '' : lines.pop() || '';
 
         for (const line of lines) {
             if (!line.startsWith('data:')) continue;
@@ -985,8 +989,9 @@ async function* streamSSEResponse(response, originalModel) {
                         };
 
                     } else if (part.text !== undefined) {
-                        // Skip empty text parts
-                        if (!part.text || part.text.trim().length === 0) {
+                        // Skip empty parts. A whitespace-only part is content once a text block is
+                        // open (e.g. the blank line between paragraphs) but must not open a block itself.
+                        if (!part.text || (currentBlockType !== 'text' && part.text.trim().length === 0)) {
                             continue;
                         }
 
@@ -1088,6 +1093,8 @@ async function* streamSSEResponse(response, originalModel) {
                 console.log('[CloudCode] SSE parse error:', parseError.message);
             }
         }
+
+        if (done) break;
     }
 
     // Handle no content received

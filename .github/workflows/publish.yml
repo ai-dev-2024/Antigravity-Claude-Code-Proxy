@@ -22,6 +22,7 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
     env:
@@ -30,7 +31,7 @@ jobs:
 
     steps:
       - name: Checkout main repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Clone extension repo
         run: |

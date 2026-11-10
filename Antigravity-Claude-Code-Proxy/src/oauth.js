@@ -286,6 +286,21 @@ export async function exchangeCode(code, verifier) {
 }
 
 /**
+ * Read the `error` code of an OAuth error response (RFC 6749 section 5.2).
+ *
+ * @param {string} body - Response body
+ * @returns {string|null} e.g. "invalid_grant"; null when the body is not such a response
+ */
+function oauthErrorCode(body) {
+    try {
+        const parsed = JSON.parse(body);
+        return typeof parsed?.error === 'string' ? parsed.error : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
  * Refresh access token using refresh token
  *
  * @param {string} refreshToken - OAuth refresh token
@@ -307,7 +322,11 @@ export async function refreshAccessToken(refreshToken) {
 
     if (!response.ok) {
         const error = await response.text();
-        throw new Error(`Token refresh failed: ${error}`);
+        // Only an invalid_grant answer rejects this refresh token for good. Other OAuth errors
+        // (invalid_client, unauthorized_client, ...) point at the client configuration, e.g. a
+        // wrong client secret, and a non-JSON body, a 5xx or a 429 says nothing about the account.
+        const rejected = oauthErrorCode(error) === 'invalid_grant' && response.status < 500 && response.status !== 429;
+        throw Object.assign(new Error(`Token refresh failed: ${error}`), { transient: !rejected });
     }
 
     const tokens = await response.json();
