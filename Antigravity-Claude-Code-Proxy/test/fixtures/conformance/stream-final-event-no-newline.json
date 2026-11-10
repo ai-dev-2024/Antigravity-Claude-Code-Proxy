@@ -1,0 +1,78 @@
+{
+  "name": "stream-final-event-no-newline",
+  "profile": "default",
+  "description": "A stream whose last event is not followed by a newline still delivers that event: its text, stop reason and usage.",
+  "request": {
+    "body": {
+      "model": "gemini-3-flash",
+      "max_tokens": 77,
+      "messages": [
+        {
+          "role": "user",
+          "content": "Write a long answer"
+        }
+      ],
+      "stream": true
+    }
+  },
+  "upstream": [
+    {
+      "raw": "data: {\"response\":{\"candidates\":[{\"content\":{\"role\":\"model\",\"parts\":[{\"text\":\"part one\"}]}}],\"usageMetadata\":{\"promptTokenCount\":9,\"candidatesTokenCount\":2}}}\n\ndata: {\"response\":{\"candidates\":[{\"content\":{\"role\":\"model\",\"parts\":[{\"text\":\" part two\"}]},\"finishReason\":\"MAX_TOKENS\"}],\"usageMetadata\":{\"promptTokenCount\":9,\"candidatesTokenCount\":77}}}"
+    }
+  ],
+  "expect": {
+    "status": 200,
+    "upstreamCalls": ["/v1internal:streamGenerateContent?alt=sse"],
+    "events": [
+      "message_start",
+      "content_block_start",
+      "content_block_delta",
+      "content_block_delta",
+      "content_block_stop",
+      "message_delta",
+      "message_stop"
+    ],
+    "eventData": [
+      {
+        "type": "message_start"
+      },
+      {
+        "type": "content_block_start",
+        "index": 0
+      },
+      {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": {
+          "type": "text_delta",
+          "text": "part one"
+        }
+      },
+      {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": {
+          "type": "text_delta",
+          "text": " part two"
+        }
+      },
+      {
+        "type": "content_block_stop",
+        "index": 0
+      },
+      {
+        "type": "message_delta",
+        "delta": {
+          "stop_reason": "max_tokens",
+          "stop_sequence": null
+        },
+        "usage": {
+          "output_tokens": 77
+        }
+      },
+      {
+        "type": "message_stop"
+      }
+    ]
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "name": "thinking-nonstream-final-event-no-newline",
+  "profile": "default",
+  "description": "A thinking model answering a non-streaming request: the last upstream event is used even when no newline follows it.",
+  "request": {
+    "body": {
+      "model": "gemini-3-pro-high",
+      "max_tokens": 77,
+      "messages": [
+        {
+          "role": "user",
+          "content": "Write a long answer"
+        }
+      ]
+    }
+  },
+  "upstream": [
+    {
+      "raw": "data: {\"response\":{\"candidates\":[{\"content\":{\"role\":\"model\",\"parts\":[{\"text\":\"part one\"}]}}],\"usageMetadata\":{\"promptTokenCount\":9,\"candidatesTokenCount\":2}}}\n\ndata: {\"response\":{\"candidates\":[{\"content\":{\"role\":\"model\",\"parts\":[{\"text\":\" part two\"}]},\"finishReason\":\"MAX_TOKENS\"}],\"usageMetadata\":{\"promptTokenCount\":9,\"candidatesTokenCount\":77}}}"
+    }
+  ],
+  "expect": {
+    "status": 200,
+    "upstreamCalls": ["/v1internal:streamGenerateContent?alt=sse"],
+    "body": {
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "part one part two"
+        }
+      ],
+      "stop_reason": "max_tokens",
+      "usage": {
+        "input_tokens": 9,
+        "output_tokens": 77
+      }
+    }
+  }
+}

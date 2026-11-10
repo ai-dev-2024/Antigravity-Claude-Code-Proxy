@@ -6,6 +6,7 @@
  *   { status, headers, json }              JSON reply (default status 200)
  *   { sse: [chunk, ...], chunkDelayMs }    text/event-stream reply, one `data:` line per chunk
  *   { sse: [...], destroy: true }          send the chunks, then drop the connection mid-stream
+ *   { raw: 'data: {...}' }                 text/event-stream reply sent exactly as given (no framing added)
  *   { hang: true }                         accept the request and never answer
  *   { delayMs }                            wait before answering
  */
@@ -46,6 +47,11 @@ export async function startScriptedUpstream() {
             if (step.hang) return;
             if (step.delayMs) await new Promise(r => setTimeout(r, step.delayMs));
 
+            if (step.raw !== undefined) {
+                res.writeHead(step.status ?? 200, { 'content-type': 'text/event-stream', ...step.headers });
+                res.end(step.raw);
+                return;
+            }
             if (step.sse) {
                 res.writeHead(step.status ?? 200, { 'content-type': 'text/event-stream', ...step.headers });
                 for (const chunk of step.sse) {
