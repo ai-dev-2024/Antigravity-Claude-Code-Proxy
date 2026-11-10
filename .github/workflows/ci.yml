@@ -25,8 +25,11 @@ jobs:
   quality:
     name: Lint, format, types
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
@@ -43,12 +46,15 @@ jobs:
   test:
     name: Tests + coverage (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
         node-version: ['22', '24']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
@@ -74,13 +80,15 @@ jobs:
   secrets:
     name: gitleaks
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: .
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: gitleaks (full history and working tree)
         env:
           GITLEAKS_VERSION: 8.21.2
@@ -99,8 +107,11 @@ jobs:
   audit:
     name: npm audit (runtime deps)
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
@@ -110,14 +121,17 @@ jobs:
   docker:
     name: Docker image (build + smoke run)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: .
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@v4
       - name: Build (multi-stage, not pushed)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: Antigravity-Claude-Code-Proxy
           load: true

@@ -10,6 +10,10 @@ updates:
       dev-dependencies:
         dependency-type: development
         update-types: [minor, patch]
+    ignore:
+      # Node's types follow the lowest supported runtime (engines.node >=22.13), not the newest Node
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
     commit-message:
       prefix: deps
   - package-ecosystem: github-actions
