@@ -985,8 +985,9 @@ async function* streamSSEResponse(response, originalModel) {
                         };
 
                     } else if (part.text !== undefined) {
-                        // Skip empty text parts
-                        if (!part.text || part.text.trim().length === 0) {
+                        // Skip empty parts. A whitespace-only part is content once a text block is
+                        // open (e.g. the blank line between paragraphs) but must not open a block itself.
+                        if (!part.text || (currentBlockType !== 'text' && part.text.trim().length === 0)) {
                             continue;
                         }
 
