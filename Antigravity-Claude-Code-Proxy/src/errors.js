@@ -238,6 +238,10 @@ export function isUnsupportedClientVersion(error) {
  */
 export function isRateLimitError(error) {
     if (error instanceof RateLimitError) return true;
+    // An upstream status is authoritative: a 400 or 5xx whose body merely mentions
+    // "rate limit" or 429 is not a rate limit. Text matching is for errors without one.
+    const status = /** @type {any} */ (error).statusCode;
+    if (typeof status === 'number') return status === 429;
     const msg = (error.message || '').toLowerCase();
     return /\b429\b/.test(msg) ||
         msg.includes('resource_exhausted') ||

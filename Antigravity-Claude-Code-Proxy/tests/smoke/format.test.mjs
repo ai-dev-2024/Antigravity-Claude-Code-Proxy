@@ -15,7 +15,7 @@ import {
     getModelFamily
 } from '../../src/constants.js';
 import { formatDuration } from '../../src/utils/helpers.js';
-import { RateLimitError, isRateLimitError, isAuthError, AuthError } from '../../src/errors.js';
+import { RateLimitError, ApiError, isRateLimitError, isAuthError, AuthError } from '../../src/errors.js';
 
 describe('convertAnthropicToGoogle', () => {
     it('maps messages, system prompt, max_tokens and tools', () => {
@@ -140,5 +140,14 @@ describe('errors', () => {
         assert.equal(isRateLimitError(new Error('boom')), false);
         assert.equal(isRateLimitError(new Error('prompt used 14290 tokens')), false);
         assert.equal(isAuthError(new AuthError('expired')), true);
+    });
+
+    it('trusts the upstream status over the message text for rate limits', () => {
+        // A 400 or 5xx whose body merely mentions rate limits is not a rate limit
+        assert.equal(isRateLimitError(new ApiError('API error 400: the tool description mentions a rate limit of 429', 400)), false);
+        assert.equal(isRateLimitError(new ApiError('API error 503: RESOURCE_EXHAUSTED', 503)), false);
+        assert.equal(isRateLimitError(new ApiError('API error 429: slow down', 429)), true);
+        // Errors without a status still fall back to the text
+        assert.equal(isRateLimitError(new Error('Rate limited: quota exceeded')), true);
     });
 });

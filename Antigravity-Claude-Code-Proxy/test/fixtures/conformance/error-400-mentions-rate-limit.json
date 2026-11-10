@@ -1,0 +1,40 @@
+{
+  "name": "error-400-mentions-rate-limit",
+  "profile": "default",
+  "description": "An upstream 400 whose message mentions rate limits is still a 400: sent once, not treated as a rate limit and retried.",
+  "request": {
+    "body": {
+      "model": "gemini-3-flash",
+      "max_tokens": 64,
+      "messages": [
+        {
+          "role": "user",
+          "content": "Say hello"
+        }
+      ]
+    }
+  },
+  "upstream": [
+    {
+      "status": 400,
+      "json": {
+        "error": {
+          "code": 400,
+          "message": "Invalid tool schema: the description mentions a rate limit of 429 requests per minute.",
+          "status": "INVALID_ARGUMENT"
+        }
+      }
+    }
+  ],
+  "expect": {
+    "status": 400,
+    "upstreamCalls": ["/v1internal:generateContent"],
+    "body": {
+      "type": "error",
+      "error": {
+        "type": "invalid_request_error",
+        "message": "Invalid tool schema: the description mentions a rate limit of 429 requests per minute."
+      }
+    }
+  }
+}
