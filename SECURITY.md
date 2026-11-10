@@ -4,9 +4,8 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 4.x     | :white_check_mark: |
-| 3.x     | :x:                |
-| < 3.0   | :x:                |
+| 2.x     | :white_check_mark: |
+| < 2.0   | :x:                |
 
 ## Security Features
 
@@ -41,7 +40,7 @@ The following sensitive files are automatically excluded from version control:
 If you discover a security vulnerability:
 
 1. **Do NOT** create a public GitHub issue
-2. Email the maintainer directly (see package.json)
+2. Report it privately on GitHub: open the [Security tab](https://github.com/muhib-karim/Antigravity-Claude-Code-Proxy/security) of this repository and choose **Report a vulnerability** ([direct link](https://github.com/muhib-karim/Antigravity-Claude-Code-Proxy/security/advisories/new))
 3. Provide detailed information about the vulnerability
 4. Allow time for a fix before public disclosure
 
