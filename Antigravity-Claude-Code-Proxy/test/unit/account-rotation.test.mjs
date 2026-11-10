@@ -86,6 +86,38 @@ describe('AccountManager cooldown and rotation', () => {
         assert.ok(wait > 4 * 60 * 1000 && wait <= 5 * 60 * 1000, `wait ${wait}`);
     });
 
+    it('counts a pool of invalid and rate-limited accounts as all rate-limited', async () => {
+        const m = await managerWith();
+        m.markInvalid('a@example.test', 'revoked');
+        m.markRateLimited('b@example.test', LONG);
+        m.markRateLimited('c@example.test', 5 * 60 * 1000);
+        assert.equal(m.getAvailableAccounts().length, 0);
+        assert.equal(
+            m.isAllRateLimited(),
+            true,
+            'an invalid account must not hide that every usable one is cooling down'
+        );
+        const wait = m.getMinWaitTimeMs();
+        assert.ok(wait > 4 * 60 * 1000 && wait <= 5 * 60 * 1000, `wait ${wait}`);
+    });
+
+    it('ignores the cooldown of an invalid account when computing the wait', async () => {
+        const m = await managerWith();
+        m.markRateLimited('a@example.test', SHORT); // the shortest cooldown, on an account that then turns invalid
+        m.markInvalid('a@example.test', 'revoked');
+        m.markRateLimited('b@example.test', LONG);
+        m.markRateLimited('c@example.test', 5 * 60 * 1000);
+        const wait = m.getMinWaitTimeMs();
+        assert.ok(wait > 4 * 60 * 1000 && wait <= 5 * 60 * 1000, `wait ${wait}`);
+    });
+
+    it('a pool with only invalid accounts is not rate-limited: there is nothing to wait for', async () => {
+        const m = await managerWith();
+        for (const n of ['a', 'b', 'c']) m.markInvalid(`${n}@example.test`, 'revoked');
+        assert.equal(m.isAllRateLimited(), false);
+        assert.equal(m.getMinWaitTimeMs(), 0);
+    });
+
     it('cooldowns expire and the account becomes available again', async () => {
         const m = await managerWith();
         m.markRateLimited('a@example.test', 30);

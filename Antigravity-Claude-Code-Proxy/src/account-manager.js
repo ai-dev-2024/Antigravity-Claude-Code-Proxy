@@ -142,12 +142,15 @@ export class AccountManager {
     }
 
     /**
-     * Check if all accounts are rate-limited
-     * @returns {boolean} True if all accounts are rate-limited
+     * Check if every usable account is rate-limited. Invalid accounts cannot serve requests
+     * either way, so they are left out; a pool with only invalid accounts is not rate-limited
+     * (there is no cooldown to wait for).
+     * @returns {boolean} True if all usable accounts are rate-limited (or the pool is empty)
      */
     isAllRateLimited() {
         if (this.#accounts.length === 0) return true;
-        return this.#accounts.every(acc => acc.isRateLimited);
+        const usable = this.#accounts.filter(acc => !acc.isInvalid);
+        return usable.length > 0 && usable.every(acc => acc.isRateLimited);
     }
 
     /**
@@ -410,7 +413,8 @@ export class AccountManager {
         let soonestAccount = null;
 
         for (const account of this.#accounts) {
-            if (account.rateLimitResetTime) {
+            // An invalid account stays unusable after its cooldown, so it is not worth waiting for
+            if (!account.isInvalid && account.rateLimitResetTime) {
                 const wait = account.rateLimitResetTime - now;
                 if (wait > 0 && wait < minWait) {
                     minWait = wait;
