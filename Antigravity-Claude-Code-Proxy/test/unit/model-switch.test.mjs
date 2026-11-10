@@ -29,6 +29,16 @@ describe('detectModelSwitch', () => {
         assert.equal(detectModelSwitch(undefined), null);
     });
 
+    it('does not read a switch verb inside another word', () => {
+        const texts = [
+            'it fails because pro users cannot log in', // "because pro" is not "use pro"
+            'please reuse fast paths here',
+            'the offset thinking is wrong',
+            'remodel flash storage'
+        ];
+        for (const text of texts) assert.equal(detectModelSwitch(text), null, text);
+    });
+
     it('runs in linear time on adversarial whitespace and word runs', () => {
         const inputs = [
             'switch' + ' '.repeat(50_000) + '!',
