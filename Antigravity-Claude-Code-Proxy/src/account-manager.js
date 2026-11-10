@@ -468,15 +468,15 @@ export class AccountManager {
                 console.log(`[AccountManager] Refreshed OAuth token for: ${account.email}`);
             } catch (error) {
                 console.error(`[AccountManager] Failed to refresh token for ${account.email}:`, error.message);
-                // Only a refresh rejected by Google means the credentials need re-auth.
-                // Network failures (fetch throws before any response) and temporary answers
-                // from Google (5xx, 429: error.transient) are not a verdict on the credentials,
-                // so park the account briefly and let the caller try the next one
+                // Only an invalid_grant answer from Google means the credentials need re-auth.
+                // Network failures (fetch throws before any response) and every other failed
+                // refresh (5xx, 429, other OAuth errors such as invalid_client: error.transient)
+                // are not a verdict on the account, so park it briefly and let the caller try the next one
                 const unreachable = !String(error.message).startsWith('Token refresh failed');
                 if (unreachable || error.transient === true) {
                     this.markRateLimited(account.email, TRANSIENT_REFRESH_COOLDOWN_MS, { tokenRefresh: true });
                     // Keep "Token refresh failed" out of this message: isAuthError() matches on it
-                    const reason = unreachable ? `could not reach Google: ${error.message}` : 'got a temporary error from Google';
+                    const reason = unreachable ? `could not reach Google: ${error.message}` : 'failed without Google rejecting the account';
                     throw new RateLimitError(`Token refresh for ${account.email} ${reason}`, TRANSIENT_REFRESH_COOLDOWN_MS, account.email);
                 }
                 this.markInvalid(account.email, error.message);

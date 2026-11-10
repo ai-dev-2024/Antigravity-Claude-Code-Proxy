@@ -383,14 +383,20 @@ describe('account rotation when a token refresh cannot reach Google', () => {
     });
 });
 
-// A 5xx or 429 from Google's token endpoint is temporary; only a rejection (e.g. 400 invalid_grant)
-// means the account has to be re-authenticated
-for (const { status, outcome, expected } of [
-    { status: 503, outcome: 'parks the account for a short cooldown', expected: { invalid: 0, rateLimited: 1 } },
-    { status: 429, outcome: 'parks the account for a short cooldown', expected: { invalid: 0, rateLimited: 1 } },
-    { status: 400, outcome: 'marks the account invalid', expected: { invalid: 1, rateLimited: 0 } }
+// Only an invalid_grant answer rejects the account's refresh token and means it has to be
+// re-authenticated. Everything else says nothing about the account: 5xx and 429 are temporary, and
+// other OAuth errors (RFC 6749 section 5.2) point at the client configuration, e.g. a wrong
+// GOOGLE_OAUTH_CLIENT_SECRET, which must not invalidate every account.
+const PARKED = { outcome: 'parks the account for a short cooldown', expected: { invalid: 0, rateLimited: 1 } };
+for (const { status, error, outcome, expected } of [
+    { status: 503, ...PARKED },
+    { status: 429, ...PARKED },
+    { status: 400, error: 'invalid_grant', outcome: 'marks the account invalid', expected: { invalid: 1, rateLimited: 0 } },
+    { status: 400, error: 'invalid_client', ...PARKED },
+    { status: 401, error: 'unauthorized_client', ...PARKED },
+    { status: 400, ...PARKED } // a body that is not an OAuth error response
 ]) {
-    describe(`account rotation when a token refresh gets HTTP ${status} from Google`, () => {
+    describe(`account rotation when a token refresh gets HTTP ${status} ${error ?? '(no OAuth error body)'} from Google`, () => {
         let upstream;
         let proxy;
         const preload = pathToFileURL(join(PACKAGE_ROOT, 'tests', 'smoke', 'fixtures', 'google-token-status.mjs')).href;
@@ -403,7 +409,11 @@ for (const { status, outcome, expected } of [
                     { email: 'oauth-account', source: 'oauth', refreshToken: 'mock-refresh-token', projectId: FAKE_PROJECT_ID },
                     { email: 'manual-account', source: 'manual', apiKey: FAKE_ACCESS_TOKEN, projectId: FAKE_PROJECT_ID }
                 ],
-                env: { NODE_OPTIONS: `--import=${preload}`, TEST_GOOGLE_TOKEN_STATUS: String(status) }
+                env: {
+                    NODE_OPTIONS: `--import=${preload}`,
+                    TEST_GOOGLE_TOKEN_STATUS: String(status),
+                    ...(error ? { TEST_GOOGLE_TOKEN_ERROR: error } : {})
+                }
             });
         });
 

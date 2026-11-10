@@ -1,12 +1,14 @@
 /**
  * Preloaded into the proxy (node --import): Google's OAuth token endpoint answers every
- * refresh with the HTTP status given in TEST_GOOGLE_TOKEN_STATUS (e.g. 503, 429 or a
- * 400 invalid_grant); every other request goes through untouched.
+ * refresh with the HTTP status given in TEST_GOOGLE_TOKEN_STATUS. With TEST_GOOGLE_TOKEN_ERROR
+ * the body is an OAuth error response (RFC 6749 section 5.2), e.g. invalid_grant or
+ * invalid_client; without it the body is plain text. Every other request goes through untouched.
  */
 const realFetch = globalThis.fetch;
 const status = Number(process.env.TEST_GOOGLE_TOKEN_STATUS);
-const body = status === 400
-    ? JSON.stringify({ error: 'invalid_grant', error_description: 'Token has been expired or revoked.' })
+const oauthError = process.env.TEST_GOOGLE_TOKEN_ERROR;
+const body = oauthError
+    ? JSON.stringify({ error: oauthError, error_description: `mock ${oauthError} answer` })
     : 'Service Unavailable';
 
 globalThis.fetch = (input, init) => {
