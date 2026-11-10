@@ -383,6 +383,56 @@ describe('account rotation when a token refresh cannot reach Google', () => {
     });
 });
 
+// A 5xx or 429 from Google's token endpoint is temporary; only a rejection (e.g. 400 invalid_grant)
+// means the account has to be re-authenticated
+for (const { status, outcome, expected } of [
+    { status: 503, outcome: 'parks the account for a short cooldown', expected: { invalid: 0, rateLimited: 1 } },
+    { status: 429, outcome: 'parks the account for a short cooldown', expected: { invalid: 0, rateLimited: 1 } },
+    { status: 400, outcome: 'marks the account invalid', expected: { invalid: 1, rateLimited: 0 } }
+]) {
+    describe(`account rotation when a token refresh gets HTTP ${status} from Google`, () => {
+        let upstream;
+        let proxy;
+        const preload = pathToFileURL(join(PACKAGE_ROOT, 'tests', 'smoke', 'fixtures', 'google-token-status.mjs')).href;
+
+        before(async () => {
+            upstream = await startMockUpstream('hello from the second account');
+            proxy = await startProxy({
+                upstreamUrl: upstream.url,
+                accounts: [
+                    { email: 'oauth-account', source: 'oauth', refreshToken: 'mock-refresh-token', projectId: FAKE_PROJECT_ID },
+                    { email: 'manual-account', source: 'manual', apiKey: FAKE_ACCESS_TOKEN, projectId: FAKE_PROJECT_ID }
+                ],
+                env: { NODE_OPTIONS: `--import=${preload}`, TEST_GOOGLE_TOKEN_STATUS: String(status) }
+            });
+        });
+
+        after(async () => {
+            await proxy?.stop();
+            await upstream?.close();
+        });
+
+        it(`falls through to the next account and ${outcome}`, async () => {
+            const res = await fetch(`${proxy.baseUrl}/v1/messages`, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({
+                    model: 'gemini-3-flash',
+                    max_tokens: 64,
+                    messages: [{ role: 'user', content: 'Say hello' }]
+                })
+            });
+            assert.equal(res.status, 200, proxy.logs());
+            const body = await res.json();
+            assert.equal(body.content.filter(b => b.type === 'text').map(b => b.text).join(''), 'hello from the second account');
+
+            const health = await (await fetch(`${proxy.baseUrl}/health`)).json();
+            assert.equal(health.invalid, expected.invalid, JSON.stringify(health));
+            assert.equal(health.rateLimited, expected.rateLimited, JSON.stringify(health));
+        });
+    });
+}
+
 describe('listing models with several accounts', () => {
     let upstream;
     let proxy;

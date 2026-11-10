@@ -307,7 +307,10 @@ export async function refreshAccessToken(refreshToken) {
 
     if (!response.ok) {
         const error = await response.text();
-        throw new Error(`Token refresh failed: ${error}`);
+        // 5xx and 429 are temporary on Google's side; any other status rejects the credentials
+        throw Object.assign(new Error(`Token refresh failed: ${error}`), {
+            transient: response.status >= 500 || response.status === 429
+        });
     }
 
     const tokens = await response.json();
