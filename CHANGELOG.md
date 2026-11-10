@@ -45,6 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Removed
 - `assets/screenshot.png`, an old dashboard screenshot that nothing referenced.
 - `Antigravity-Claude-Code-Proxy/.github/workflows/publish.yml`, an npm-publish workflow that GitHub never ran (workflows only run from the repository root).
+- The dangling `claude-proxy-ext-src` submodule entry (a gitlink with no `.gitmodules`). `actions/checkout` v7 runs `git submodule foreach` in its auth cleanup and failed every job with "No url found for submodule path"; v4 tolerated it. The extension lives in its own repository and `publish.yml` clones it fresh, so the folder is now git-ignored instead.
 
 ### Security
 - Credentials embedded in URLs (`scheme://user:pass@host`) are masked as `scheme://***@host` in all redacted log lines and error responses, and the Perplexity backend URL is never logged or returned with credentials. The userinfo runs to the last `@` of the authority (which ends at the first `/`, `?`, `#` or `\`), so a password containing `@` or quotes is masked entirely while an `@` in the path or query is left alone; a single URL that cannot be parsed safely is logged as `[URL REDACTED]`.
