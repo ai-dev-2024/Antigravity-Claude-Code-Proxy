@@ -382,3 +382,44 @@ describe('account rotation when a token refresh cannot reach Google', () => {
         assert.equal(health.rateLimited, 1, 'the unreachable account is only parked for a short cooldown');
     });
 });
+
+describe('listing models with several accounts', () => {
+    let upstream;
+    let proxy;
+
+    const sendMessage = () => fetch(`${proxy.baseUrl}/v1/messages`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ model: 'gemini-3-flash', max_tokens: 64, messages: [{ role: 'user', content: 'Say hello' }] })
+    });
+
+    before(async () => {
+        upstream = await startMockUpstream(REPLY);
+        proxy = await startProxy({
+            upstreamUrl: upstream.url,
+            accounts: [
+                { email: 'first-account', source: 'manual', apiKey: 'key-a', projectId: FAKE_PROJECT_ID },
+                { email: 'second-account', source: 'manual', apiKey: 'key-b', projectId: FAKE_PROJECT_ID }
+            ]
+        });
+    });
+
+    after(async () => {
+        await proxy?.stop();
+        await upstream?.close();
+    });
+
+    it('GET /v1/models does not move requests to another account', async () => {
+        assert.equal((await sendMessage()).status, 200, proxy.logs());
+        // One listing only: with two accounts a second listing would rotate back and hide a rotation
+        assert.equal((await fetch(`${proxy.baseUrl}/v1/models`)).status, 200);
+        assert.equal((await sendMessage()).status, 200, proxy.logs());
+
+        const calls = upstream.requests.map(r => `${r.url.split('?')[0]} ${r.headers.authorization}`);
+        assert.deepEqual(calls, [
+            '/v1internal:generateContent Bearer key-a',
+            '/v1internal:fetchAvailableModels Bearer key-a',
+            '/v1internal:generateContent Bearer key-a'
+        ]);
+    });
+});

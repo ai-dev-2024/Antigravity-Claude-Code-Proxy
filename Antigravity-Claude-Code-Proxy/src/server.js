@@ -1174,8 +1174,10 @@ app.get('/v1/models', async (req, res) => {
         });
 
         // Get Google Cloud Code models if available
-        // An upstream failure should not hide the active model or Perplexity models
-        const account = accountManager.pickNext();
+        // An upstream failure should not hide the active model or Perplexity models.
+        // Listing must not rotate the pool: pickNext() would move the sticky account (and its
+        // prompt-cache affinity) on every call, so use the current one or any available account.
+        const account = accountManager.getCurrentStickyAccount() || accountManager.getAvailableAccounts()[0];
         if (account) {
             try {
                 const token = await accountManager.getTokenForAccount(account);
