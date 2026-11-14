@@ -52,7 +52,8 @@ claude
 
 - **scripts/startup/start-proxy.bat** - Start the proxy server
 - **ADD_ACCOUNT.bat** - Add a new Google account
-- **npm run accounts:list** - Check account status and proxy health
+- **npm run accounts:list** - Check account status
+- **npm run doctor** - Check proxy health (or `curl http://localhost:8080/health` while the proxy runs)
 
 ## Troubleshooting
 
